@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace RoslynMemberSorter;
@@ -9,6 +10,46 @@ namespace RoslynMemberSorter;
 /// </summary>
 public static class Extensions
 {
+	/// <summary>
+	/// Returns elements that are out of order when compared to the previous element using <paramref name="comparer" />.
+	/// </summary>
+	/// <typeparam name="TSource">The type of the elements in <paramref name="source" />.</typeparam>
+	/// <param name="source">An <see cref="IEnumerable{T}" /> to check the order of.</param>
+	/// <param name="comparer">An <see cref="IComparer{T}" /> to compare elements.</param>
+	/// <returns>An <see cref="IEnumerable{T}" /> of <typeparamref name="TSource" /> containing elements that are out of order.</returns>
+	/// <exception cref="ArgumentNullException"><paramref name="source" /> or <paramref name="comparer" /> is <see langword="null" />.</exception>
+	public static IEnumerable<TSource> FindUnordered<TSource>(this IEnumerable<TSource> source, IComparer<TSource> comparer)
+	{
+		if (source is null)
+		{
+			throw new ArgumentNullException(nameof(source));
+		}
+		if (comparer is null)
+		{
+			throw new ArgumentNullException(nameof(comparer));
+		}
+		return FindUnorderedImpl(source, comparer);
+
+		static IEnumerable<TSource> FindUnorderedImpl(IEnumerable<TSource> source, IComparer<TSource> comparer)
+		{
+			var enumerator = source.GetEnumerator();
+			if (!enumerator.MoveNext())
+			{
+				yield break;
+			}
+			var lastElement = enumerator.Current;
+			while (enumerator.MoveNext())
+			{
+				var currentElement = enumerator.Current;
+				if (comparer.Compare(lastElement, currentElement) > 0)
+				{
+					yield return currentElement;
+				}
+				lastElement = currentElement;
+			}
+		}
+	}
+
 	/// <summary>
 	/// Checks to see if a collection is ordered.
 	/// </summary>

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0-alpha] March 25, 2022
+### Added
+
+- Individual diagnostics have been created for each sort order issue.
+- The new diagnostics are now placed on the member that is out of order.
+
+### Fixed
+
+- Changelog date from "month-name day, year" to "year-month-day".
+
+### Deprecated
+
+- Diagnostic `RMS0001` which was reported on the namespace or type that declared the member out of order.
+
+## [0.1.0-alpha] 2022-03-25
 
 Initial release
