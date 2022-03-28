@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 
 namespace RoslynMemberSorter;
@@ -10,6 +9,21 @@ namespace RoslynMemberSorter;
 /// </summary>
 public static class Extensions
 {
+	/// <summary>
+	/// Asserts that a provided enum value is defined on the type.
+	/// </summary>
+	/// <typeparam name="TEnum"></typeparam>
+	/// <param name="value"></param>
+	/// <param name="argumentName"></param>
+	/// <exception cref="ArgumentException"></exception>
+	public static void AssertValid<TEnum>(this TEnum value, string argumentName) where TEnum : struct, Enum
+	{
+		if (!Enum.IsDefined(typeof(TEnum), value))
+		{
+			throw new ArgumentException($"{value} is not a defined enum name on {typeof(TEnum).FullName}", argumentName);
+		}
+	}
+
 	/// <summary>
 	/// Returns elements that are out of order when compared to the previous element using <paramref name="comparer" />.
 	/// </summary>

@@ -5,6 +5,7 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using RoslynMemberSorter.Enums;
 
 namespace RoslynMemberSorter;
 
@@ -144,7 +145,7 @@ public sealed class DeclarationComparer : IComparer<MemberDeclarationSyntax>
 			{
 				if (member.Modifiers.Any(token => token.IsKind(SyntaxKind.ProtectedKeyword)))
 				{
-					return Accessibility.ProtectedInternal;
+					return Accessibility.ProtectedOrInternal;
 				}
 				else
 				{
@@ -155,7 +156,7 @@ public sealed class DeclarationComparer : IComparer<MemberDeclarationSyntax>
 			{
 				if (member.Modifiers.Any(token => token.IsKind(SyntaxKind.PrivateKeyword)))
 				{
-					return Accessibility.PrivateProtected;
+					return Accessibility.ProtectedAndInternal;
 				}
 				else
 				{

@@ -1,4 +1,4 @@
-namespace RoslynMemberSorter;
+namespace RoslynMemberSorter.Enums;
 
 /// <summary>
 /// Indicates how to sort a given member detail.

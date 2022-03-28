@@ -1,4 +1,4 @@
-namespace RoslynMemberSorter;
+namespace RoslynMemberSorter.Enums;
 
 /// <summary>
 /// Indicates a member detail that can be sorted. These values are used for <see cref="DeclarationComparerOptions.SortOrders" /> to indicate the order in which sorts should take place.

@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
+using RoslynMemberSorter.Enums;
 
 namespace RoslynMemberSorter;
 
@@ -30,10 +32,10 @@ public sealed class DeclarationComparerOptions
 	} = ImmutableArray.Create
 	(
 		Accessibility.Public,
-		Accessibility.ProtectedInternal,
+		Accessibility.ProtectedOrInternal,
 		Accessibility.Internal,
 		Accessibility.Protected,
-		Accessibility.PrivateProtected,
+		Accessibility.ProtectedAndInternal,
 		Accessibility.Private
 	);
 
@@ -395,7 +397,7 @@ public sealed class DeclarationComparerOptions
 	/// <param name="values">An <see cref="IEnumerable{T}" /> of <see cref="string" /> to try to convert.</param>
 	/// <returns>A <see cref="ImmutableArray{T}" /> of <typeparamref name="TEnum" /> created from parsing <paramref name="values" />. The array will only contain successful values and invalid values will be dropped.</returns>
 	/// <remarks>Each value will be run through <see cref="Enum.TryParse{TEnum}(string, bool, out TEnum)" /> ignoring case. If that fails, <c>"Declaration"</c>, <c>"Token"</c>, and <c>"Keyword"</c> will be appended in series to the end of the value to attempt to match a <see cref="SyntaxKind" />.</remarks>
-	private static ImmutableArray<TEnum> TryParseAll<TEnum>(IEnumerable<string> values) where TEnum : struct
+	private static ImmutableArray<TEnum> TryParseAll<TEnum>(IEnumerable<string> values) where TEnum : struct, Enum
 	{
 		return values.Select(value =>
 			(
