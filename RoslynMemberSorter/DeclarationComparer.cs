@@ -12,6 +12,7 @@ namespace RoslynMemberSorter;
 /// <summary>
 /// Compares <see cref="MemberDeclarationSyntax" /> values based on a number of details indicated by <see cref="Options" />.
 /// </summary>
+[Obsolete]
 public sealed class DeclarationComparer : IComparer<MemberDeclarationSyntax>
 {
 	/// <summary>

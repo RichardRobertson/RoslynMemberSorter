@@ -10,14 +10,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Individual diagnostics have been created for each sort order issue.
+- Individual comparer classes:
+    - `MultiComparer` class which can run comparers in sequence
+    - `HasQuality<TCompared>` abstract base class
+    - `IndexedComparer<TCompared, TQuality>` abstract base class
+    - `AccessibilityComparer`
+    - `FieldDeclarationMutabilityComparer`
+    - `HasExplicitInterfaceSpecifierComparer`
+    - `IdentifierComparer`
+        - `IdentifierComparer.OperatorComparer`
+    - `IsStaticComparer`
+    - `KindComparer`
+    - `ParametersComparer`
+- `ArityOrder` enum which provides more clarity when sorting arity.
 
 ### Changed
 
-- Moved enums into `RoslynMemberSorter.Enums` namespace and matching folder
+- Moved enums into `RoslynMemberSorter.Enums` namespace and matching folder.
+- `FieldMutability` comment documentation to use keyword references.
+- `Order` comment documentation to remove mention of `DeclarationComparerOptions` and changed 'detail' to 'quality'.
 
 ### Deprecated
 
 - Diagnostic `RMS0001` which was reported on the namespace or type that declared the member out of order.
+- `DeclarationComparer` class in favor of new comparers.
 
 ### Fixed
 

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace RoslynMemberSorter;
@@ -12,15 +14,15 @@ public static class Extensions
 	/// <summary>
 	/// Asserts that a provided enum value is defined on the type.
 	/// </summary>
-	/// <typeparam name="TEnum"></typeparam>
-	/// <param name="value"></param>
-	/// <param name="argumentName"></param>
-	/// <exception cref="ArgumentException"></exception>
-	public static void AssertValid<TEnum>(this TEnum value, string argumentName) where TEnum : struct, Enum
+	/// <typeparam name="TEnum">The type of the enumeration to call <see cref="Enum.IsDefined(Type, object)" /> with.</typeparam>
+	/// <param name="value">The enum value to check.</param>
+	/// <param name="argumentName">The name of the enum variable to report in <see cref="ArgumentException" /> if it is not a defined value.</param>
+	/// <exception cref="InvalidEnumArgumentException"><paramref name="value" /> is not a defined enum name on <typeparamref name="TEnum" />.</exception>
+	public static void AssertValid<TEnum>(this TEnum value, [CallerArgumentExpression("value")] string argumentName = "") where TEnum : struct, Enum
 	{
 		if (!Enum.IsDefined(typeof(TEnum), value))
 		{
-			throw new ArgumentException($"{value} is not a defined enum name on {typeof(TEnum).FullName}", argumentName);
+			throw new InvalidEnumArgumentException(argumentName, Unsafe.As<TEnum, int>(ref value), typeof(TEnum));
 		}
 	}
 

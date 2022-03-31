@@ -1,23 +1,22 @@
 namespace RoslynMemberSorter.Enums;
 
 /// <summary>
-/// Indicates how to sort a given member detail.
+/// Indicates how to sort a given member quality.
 /// </summary>
-/// <remarks>See properties on <see cref="DeclarationComparerOptions" /> for more details.</remarks>
 public enum Order
 {
 	/// <summary>
-	/// This detail is not taken into account when sorting members.
+	/// This quality is not taken into account when sorting members.
 	/// </summary>
 	Default,
 
 	/// <summary>
-	/// This member detail should come first.
+	/// Members with this quality should come first.
 	/// </summary>
 	First,
 
 	/// <summary>
-	/// This member detail should come last.
+	/// Members with this quality should come last.
 	/// </summary>
 	Last
 }
