@@ -23,17 +23,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `KindComparer`
     - `ParametersComparer`
 - `ArityOrder` enum which provides more clarity when sorting arity.
+- `DeclarationComparerOptions`
+    - `ToCSharpComparer()` to create a new comparer chain from options.
+    - Additional properties to match new comparers.
 
 ### Changed
 
 - Moved enums into `RoslynMemberSorter.Enums` namespace and matching folder.
 - `FieldMutability` comment documentation to use keyword references.
 - `Order` comment documentation to remove mention of `DeclarationComparerOptions` and changed 'detail' to 'quality'.
+- Change the analyzer and code fix provider to use `DeclarationComparerOptions.ToCSharpComparer()`
+- Updated unit tests to use moved enums and comparers.
+- `DeclarationComparerOptions`
+    - Property `Order SingleLineEvents` has changed to `bool MergeEvents`
+    - Property `Order LowArity` has changed to `ArityOrder ArityOrder`
 
 ### Deprecated
 
 - Diagnostic `RMS0001` which was reported on the namespace or type that declared the member out of order.
-- `DeclarationComparer` class in favor of new comparers.
 
 ### Fixed
 
@@ -42,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - Tossed `RoslynMemberSorter.Accessibility` in favor of using `Microsoft.CodeAnalysis.Accessibility`.
+- `DeclarationComparer` class in favor of new comparers.
 
 ## [0.1.0-alpha] 2022-03-25
 

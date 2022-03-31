@@ -2,10 +2,12 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Roslynator.Testing;
 using Roslynator.Testing.CSharp;
 using Roslynator.Testing.CSharp.Xunit;
+using RoslynMemberSorter.Enums;
 using Xunit;
 
 namespace RoslynMemberSorter.Tests;
@@ -38,10 +40,10 @@ public class UnitTests : XunitDiagnosticVerifier<MemberSorterAnalyzer, MemberSor
 						[MakePropertyKey(dco => dco.ExplicitInterfaceSpecifiers)] = MakeEnumValue(Order.Default),
 						[MakePropertyKey(dco => dco.FieldOrder)] = string.Empty,
 						[MakePropertyKey(dco => dco.KindOrder)] = string.Empty,
-						[MakePropertyKey(dco => dco.LowArity)] = MakeEnumValue(Order.Default),
+						[MakePropertyKey(dco => dco.ArityOrder)] = MakeEnumValue(ArityOrder.Default),
 						[MakePropertyKey(dco => dco.OperatorOrder)] = string.Empty,
 						[MakePropertyKey(dco => dco.ParameterSortStyle)] = MakeEnumValue(ParameterSortStyle.Default),
-						[MakePropertyKey(dco => dco.SingleLineEvents)] = MakeEnumValue(Order.Default),
+						[MakePropertyKey(dco => dco.MergeEvents)] = MakeEnumValue(false),
 						[MakePropertyKey(dco => dco.SortOrders)] = string.Empty,
 						[MakePropertyKey(dco => dco.Static)] = MakeEnumValue(Order.Default)
 					});
@@ -203,7 +205,7 @@ public class UnitTests : XunitDiagnosticVerifier<MemberSorterAnalyzer, MemberSor
 		var source = TestCode.Parse("class [|test|]\r\n{\r\n    int Method(int a, int b) => throw new System.NotImplementedException();\r\n    int Method(int a) => throw new System.NotImplementedException();\r\n}\r\n");
 		var config = new Dictionary<string, string>()
 		{
-			[MakePropertyKey(dco => dco.LowArity)] = MakeEnumValue(Order.Default),
+			[MakePropertyKey(dco => dco.ArityOrder)] = MakeEnumValue(ArityOrder.Default),
 			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Parameters)
 		};
 
@@ -211,12 +213,32 @@ public class UnitTests : XunitDiagnosticVerifier<MemberSorterAnalyzer, MemberSor
 		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
 
 		// verify order applies
-		config[MakePropertyKey(dco => dco.LowArity)] = MakeEnumValue(Order.First);
+		config[MakePropertyKey(dco => dco.ArityOrder)] = MakeEnumValue(ArityOrder.LowToHigh);
 		const string expectedFix = "class test\r\n{\r\n    int Method(int a) => throw new System.NotImplementedException();\r\n    int Method(int a, int b) => throw new System.NotImplementedException();\r\n}\r\n";
 		await VerifyDiagnosticAndFixAsync(source, expectedFix, config).ConfigureAwait(false);
 
 		// already in order, verify no diagnostic
-		config[MakePropertyKey(dco => dco.LowArity)] = MakeEnumValue(Order.Last);
+		config[MakePropertyKey(dco => dco.ArityOrder)] = MakeEnumValue(ArityOrder.HighToLow);
+		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
+	}
+
+	[Fact]
+	public async Task TestMergeEventsAsync()
+	{
+		var source = TestCode.Parse("class [|test|]\r\n{\r\n    event System.EventHandler MultiLine\r\n    {\r\n        add => throw new System.NotImplementedException();\r\n        remove => throw new System.NotImplementedException();\r\n    }\r\n    event System.EventHandler SingleLine;\r\n}\r\n");
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.KindOrder)] = MakeEnumList(SyntaxKind.EventFieldDeclaration, SyntaxKind.EventDeclaration),
+			[MakePropertyKey(dco => dco.MergeEvents)] = MakeEnumValue(false),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Kind)
+		};
+
+		// verify order applies
+		const string expectedFix = "class test\r\n{\r\n    event System.EventHandler SingleLine;\r\n    event System.EventHandler MultiLine\r\n    {\r\n        add => throw new System.NotImplementedException();\r\n        remove => throw new System.NotImplementedException();\r\n    }\r\n}\r\n";
+		await VerifyDiagnosticAndFixAsync(source, expectedFix, config).ConfigureAwait(false);
+
+		// already in order, verify no diagnostic
+		config[MakePropertyKey(dco => dco.MergeEvents)] = MakeEnumValue(true);
 		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
 	}
 
@@ -265,29 +287,6 @@ public class UnitTests : XunitDiagnosticVerifier<MemberSorterAnalyzer, MemberSor
 		config[MakePropertyKey(dco => dco.ParameterSortStyle)] = MakeEnumValue(ParameterSortStyle.SortNames);
 		const string expectedNamesFix = "class test\r\n{\r\n    void Method(string a) => throw new System.NotImplementedException();\r\n    void Method(double b) => throw new System.NotImplementedException();\r\n    void Method(int c) => throw new System.NotImplementedException();\r\n}\r\n";
 		await VerifyDiagnosticAndFixAsync(source, expectedNamesFix, config).ConfigureAwait(false);
-	}
-
-	[Fact]
-	public async Task TestSingleLineEventsAsync()
-	{
-		var source = TestCode.Parse("class [|test|]\r\n{\r\n    event System.EventHandler MultiLine\r\n    {\r\n        add => throw new System.NotImplementedException();\r\n        remove => throw new System.NotImplementedException();\r\n    }\r\n    event System.EventHandler SingleLine;\r\n}\r\n");
-		var config = new Dictionary<string, string>()
-		{
-			[MakePropertyKey(dco => dco.SingleLineEvents)] = MakeEnumValue(Order.Default),
-			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Kind)
-		};
-
-		// default sort order means do not reorder, verify no diagnostic
-		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
-
-		// verify order applies
-		config[MakePropertyKey(dco => dco.SingleLineEvents)] = MakeEnumValue(Order.First);
-		const string expectedFix = "class test\r\n{\r\n    event System.EventHandler SingleLine;\r\n    event System.EventHandler MultiLine\r\n    {\r\n        add => throw new System.NotImplementedException();\r\n        remove => throw new System.NotImplementedException();\r\n    }\r\n}\r\n";
-		await VerifyDiagnosticAndFixAsync(source, expectedFix, config).ConfigureAwait(false);
-
-		// already in order, verify no diagnostic
-		config[MakePropertyKey(dco => dco.SingleLineEvents)] = MakeEnumValue(Order.Last);
-		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
 	}
 
 	[Fact]

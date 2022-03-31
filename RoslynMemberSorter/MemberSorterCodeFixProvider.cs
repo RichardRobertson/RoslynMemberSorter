@@ -41,7 +41,7 @@ public sealed class MemberSorterCodeFixProvider : CodeFixProvider
 					{
 						return context.Document;
 					}
-					var comparer = new DeclarationComparer(DeclarationComparerOptions.FromDictionary(context.Diagnostics[0].Properties));
+					var comparer = DeclarationComparerOptions.FromDictionary(context.Diagnostics[0].Properties).ToCSharpComparer();
 					var nodeAtDiagnostic = root.FindNode(sortMemberDiagnostic.Location.SourceSpan);
 					SyntaxNode newNode;
 					if (nodeAtDiagnostic is NamespaceDeclarationSyntax namespaceDeclarationSyntax)

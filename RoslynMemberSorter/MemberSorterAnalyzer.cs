@@ -36,11 +36,12 @@ public sealed class MemberSorterAnalyzer : DiagnosticAnalyzer
 	private void AnalyzeFileScopedNamespace(SyntaxNodeAnalysisContext context)
 	{
 		var options = context.Options.AnalyzerConfigOptionsProvider.GetOptions(context.Node.SyntaxTree);
-		var comparer = new DeclarationComparer(DeclarationComparerOptions.FromAnalyzerConfigOptions(options));
+		var declarationComparerOptions = DeclarationComparerOptions.FromAnalyzerConfigOptions(options);
+		var comparer = declarationComparerOptions.ToCSharpComparer();
 		var fileScopedNamespaceDeclaration = (FileScopedNamespaceDeclarationSyntax)context.Node;
 		if (!fileScopedNamespaceDeclaration.Members.IsOrdered(comparer))
 		{
-			context.ReportDiagnostic(Diagnostic.Create(DiagnosticIds.SortMembers, fileScopedNamespaceDeclaration.Name.GetLocation(), comparer.Options.ToImmutableDictionary()));
+			context.ReportDiagnostic(Diagnostic.Create(DiagnosticIds.SortMembers, fileScopedNamespaceDeclaration.Name.GetLocation(), declarationComparerOptions.ToImmutableDictionary()));
 		}
 	}
 
@@ -51,11 +52,12 @@ public sealed class MemberSorterAnalyzer : DiagnosticAnalyzer
 	private void AnalyzeNamespace(SyntaxNodeAnalysisContext context)
 	{
 		var options = context.Options.AnalyzerConfigOptionsProvider.GetOptions(context.Node.SyntaxTree);
-		var comparer = new DeclarationComparer(DeclarationComparerOptions.FromAnalyzerConfigOptions(options));
+		var declarationComparerOptions = DeclarationComparerOptions.FromAnalyzerConfigOptions(options);
+		var comparer = declarationComparerOptions.ToCSharpComparer();
 		var namespaceDeclaration = (NamespaceDeclarationSyntax)context.Node;
 		if (!namespaceDeclaration.Members.IsOrdered(comparer))
 		{
-			context.ReportDiagnostic(Diagnostic.Create(DiagnosticIds.SortMembers, namespaceDeclaration.Name.GetLocation(), comparer.Options.ToImmutableDictionary()));
+			context.ReportDiagnostic(Diagnostic.Create(DiagnosticIds.SortMembers, namespaceDeclaration.Name.GetLocation(), declarationComparerOptions.ToImmutableDictionary()));
 		}
 	}
 
@@ -66,11 +68,12 @@ public sealed class MemberSorterAnalyzer : DiagnosticAnalyzer
 	private void AnalyzeType(SyntaxNodeAnalysisContext context)
 	{
 		var options = context.Options.AnalyzerConfigOptionsProvider.GetOptions(context.Node.SyntaxTree);
-		var comparer = new DeclarationComparer(DeclarationComparerOptions.FromAnalyzerConfigOptions(options));
+		var declarationComparerOptions = DeclarationComparerOptions.FromAnalyzerConfigOptions(options);
+		var comparer = declarationComparerOptions.ToCSharpComparer();
 		var typeDeclaration = (TypeDeclarationSyntax)context.Node;
 		if (!typeDeclaration.Members.IsOrdered(comparer))
 		{
-			context.ReportDiagnostic(Diagnostic.Create(DiagnosticIds.SortMembers, typeDeclaration.Identifier.GetLocation(), comparer.Options.ToImmutableDictionary()));
+			context.ReportDiagnostic(Diagnostic.Create(DiagnosticIds.SortMembers, typeDeclaration.Identifier.GetLocation(), declarationComparerOptions.ToImmutableDictionary()));
 		}
 	}
 }

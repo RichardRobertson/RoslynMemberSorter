@@ -4,7 +4,10 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using RoslynMemberSorter.Comparers;
+using RoslynMemberSorter.Comparers.CSharp;
 using RoslynMemberSorter.Enums;
 
 namespace RoslynMemberSorter;
@@ -47,6 +50,15 @@ public sealed class DeclarationComparerOptions
 		get;
 		set;
 	} = NameOrder.Alphabetical;
+
+	/// <summary>
+	/// Indicates how parameter arity should be sorted.
+	/// </summary>
+	public ArityOrder ArityOrder
+	{
+		get;
+		set;
+	} = ArityOrder.LowToHigh;
 
 	/// <summary>Indicates where explicit interface implementation members should be ordered.</summary>
 	/// <value>
@@ -112,33 +124,14 @@ public sealed class DeclarationComparerOptions
 		SyntaxKind.DelegateDeclaration
 	);
 
-	/// <summary>Indicates how method arity should be handled.</summary>
-	/// <value>
-	/// 	<list type="table">
-	/// 		<listheader>
-	/// 			<term>Value</term>
-	/// 			<description>Effect</description>
-	/// 		</listheader>
-	/// 		<item>
-	/// 			<term><see cref="Order.Default" /></term>
-	/// 			<description>Method arity is ignored for sorting purposes.</description>
-	/// 		</item>
-	/// 		<item>
-	/// 			<term><see cref="Order.First" /></term>
-	/// 			<description>Methods with low arity come before methods with high arity.</description>
-	/// 		</item>
-	/// 		<item>
-	/// 			<term><see cref="Order.Last" /></term>
-	/// 			<description>Methods with low arity come after methods with high arity.</description>
-	/// 		</item>
-	/// 	</list>
-	/// </value>
-	/// <remarks>This can apply to constructors, delegates, indexers, and methods.</remarks>
-	public Order LowArity
+	/// <summary>
+	/// Indicates whether <see cref="SyntaxKind.EventDeclaration" /> and <see cref="SyntaxKind.EventFieldDeclaration" /> should be treated as equivalent when sorting by kind.
+	/// </summary>
+	public bool MergeEvents
 	{
 		get;
 		set;
-	} = Order.First;
+	} = true;
 
 	/// <summary>
 	/// Indicates the order in which operators should be sorted as they do not have conventional alphabetical names.
@@ -182,32 +175,14 @@ public sealed class DeclarationComparerOptions
 		set;
 	} = ParameterSortStyle.SortTypes;
 
-	/// <summary>Indicates whether single line events should be separated from events with accessors.</summary>
-	/// <value>
-	/// 	<list type="table">
-	/// 		<listheader>
-	/// 			<term>Value</term>
-	/// 			<description>Effect</description>
-	/// 		</listheader>
-	/// 		<item>
-	/// 			<term><see cref="Order.Default" /></term>
-	/// 			<description>Single line or accessor status is ignored for sorting purposes.</description>
-	/// 		</item>
-	/// 		<item>
-	/// 			<term><see cref="Order.First" /></term>
-	/// 			<description>Single line events come before events with accessors.</description>
-	/// 		</item>
-	/// 		<item>
-	/// 			<term><see cref="Order.Last" /></term>
-	/// 			<description>Single line events come after events with accessors.</description>
-	/// 		</item>
-	/// 	</list>
-	/// </value>
-	public Order SingleLineEvents
+	/// <summary>
+	/// Indicates the order in which parameters that have a <see langword="ref" /> modifier keyword should be sorted compared to those that do not.
+	/// </summary>
+	public Order ReferenceParameterOrder
 	{
 		get;
 		set;
-	} = Order.Default;
+	} = Order.First;
 
 	/// <summary>
 	/// Indicates the order in which sorts (eg: by kind, by accessibility) should take place. <see cref="SortOrder" /> values not specified here will not be sorted at all.
@@ -255,6 +230,42 @@ public sealed class DeclarationComparerOptions
 	} = Order.First;
 
 	/// <summary>
+	/// Indicates where to sort accessibilities that are not found in <see cref="AccessibilityOrder" />.
+	/// </summary>
+	public Order UnknownAccessibilityOrder
+	{
+		get;
+		set;
+	} = Order.First;
+
+	/// <summary>
+	/// Indicates where to sort field mutabilities that are not found in <see cref="FieldOrder" />.
+	/// </summary>
+	public Order UnknownFieldMutabilityOrder
+	{
+		get;
+		set;
+	} = Order.First;
+
+	/// <summary>
+	/// Indicates where to sort kinds that are not found in <see cref="KindOrder" />.
+	/// </summary>
+	public Order UnknownKindOrder
+	{
+		get;
+		set;
+	} = Order.First;
+
+	/// <summary>
+	/// Indicates where to sort operator tokens that are not found in <see cref="OperatorOrder" />.
+	/// </summary>
+	public Order UnknownOperatorTokenOrder
+	{
+		get;
+		set;
+	} = Order.First;
+
+	/// <summary>
 	/// Creates a new <see cref="DeclarationComparerOptions" /> instance from the given property name and value pairs.
 	/// </summary>
 	/// <param name="options">The config to read property names and values from.</param>
@@ -275,6 +286,43 @@ public sealed class DeclarationComparerOptions
 	public static DeclarationComparerOptions FromDictionary(IReadOnlyDictionary<string, string?> dictionary)
 	{
 		return FromFunc(dictionary.TryGetValue, string.Empty);
+	}
+
+	/// <summary>
+	/// Creates a comparer that matches the current settings.
+	/// </summary>
+	/// <returns>An <see cref="IComparer{T}" /> of <see cref="MemberDeclarationSyntax" /></returns>
+	public IComparer<MemberDeclarationSyntax> ToCSharpComparer()
+	{
+		var comparers = new List<IComparer<MemberDeclarationSyntax>>();
+		foreach (var sort in SortOrders)
+		{
+			switch (sort)
+			{
+				case SortOrder.Accessibility:
+					comparers.Add(new AccessibilityComparer(AccessibilityOrder, UnknownAccessibilityOrder));
+					break;
+				case SortOrder.ExplicitInterfaceSpecifier:
+					comparers.Add(new HasExplicitInterfaceSpecifierComparer(ExplicitInterfaceSpecifiers));
+					break;
+				case SortOrder.FieldOrder:
+					comparers.Add(new FieldDeclarationMutabilityComparer(FieldOrder, UnknownFieldMutabilityOrder));
+					break;
+				case SortOrder.Identifier:
+					comparers.Add(new IdentifierComparer(AlphabeticalIdentifiers, OperatorOrder, UnknownOperatorTokenOrder));
+					break;
+				case SortOrder.Kind:
+					comparers.Add(new KindComparer(KindOrder, UnknownKindOrder, MergeEvents));
+					break;
+				case SortOrder.Parameters:
+					comparers.Add(new ParametersComparer(ArityOrder, ParameterSortStyle, ReferenceParameterOrder));
+					break;
+				case SortOrder.Static:
+					comparers.Add(new IsStaticComparer(Static));
+					break;
+			}
+		}
+		return new MultiComparer<MemberDeclarationSyntax>(comparers);
 	}
 
 	/// <summary>
@@ -305,6 +353,10 @@ public sealed class DeclarationComparerOptions
 				dictionary.Add(property.Name.ToSnakeCase(), string.Join(",", enumFieldMutability.Select(e => e.ToString().ToSnakeCase())));
 			}
 			else if (propertyValue is Enum)
+			{
+				dictionary.Add(property.Name.ToSnakeCase(), propertyValue.ToString().ToSnakeCase());
+			}
+			else if (propertyValue is bool)
 			{
 				dictionary.Add(property.Name.ToSnakeCase(), propertyValue.ToString().ToSnakeCase());
 			}
@@ -368,6 +420,20 @@ public sealed class DeclarationComparerOptions
 				else if (property.PropertyType == typeof(ImmutableArray<FieldMutability>))
 				{
 					property.SetValue(options, TryParseAll<FieldMutability>(CleanAndSplitString(value)));
+				}
+				else if (property.PropertyType == typeof(bool))
+				{
+					if (bool.TryParse(CleanString(value), out var boolValue))
+					{
+						property.SetValue(options, boolValue);
+					}
+				}
+				else if (property.PropertyType == typeof(ArityOrder))
+				{
+					if (Enum.TryParse<ArityOrder>(CleanString(value), true, out var arityOrder))
+					{
+						property.SetValue(options, arityOrder);
+					}
 				}
 				else
 				{
