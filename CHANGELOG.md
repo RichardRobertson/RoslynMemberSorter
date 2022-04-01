@@ -41,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Property `Order SingleLineEvents` has changed to `bool MergeEvents`
     - Property `Order LowArity` has changed to `ArityOrder ArityOrder`
 - `NameOrder` enum renamed to `IdentifierOrder`
+- Moved options to `dotnet_diagnostic.rms####.` where #### is the diagnostic number relevant to the sorting method.
+- `SortOrders` is now option `dotnet_diagnostic.rms_shared.sort_orders`.
 
 ### Deprecated
 

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -36,7 +37,7 @@ public class UnitTests : XunitDiagnosticVerifier<MemberSorterAnalyzer, MemberSor
 				.WithConfigOptions(new Dictionary<string, string>()
 					{
 						[MakePropertyKey(dco => dco.AccessibilityOrder)] = string.Empty,
-						[MakePropertyKey(dco => dco.AlphabeticalIdentifiers)] = MakeEnumValue(IdentifierOrder.Default),
+						[MakePropertyKey(dco => dco.IdentifierNames)] = MakeEnumValue(IdentifierOrder.Default),
 						[MakePropertyKey(dco => dco.ExplicitInterfaceSpecifiers)] = MakeEnumValue(Order.Default),
 						[MakePropertyKey(dco => dco.FieldOrder)] = string.Empty,
 						[MakePropertyKey(dco => dco.KindOrder)] = string.Empty,
@@ -63,13 +64,40 @@ public class UnitTests : XunitDiagnosticVerifier<MemberSorterAnalyzer, MemberSor
 
 	private static string MakePropertyKey<T>(System.Linq.Expressions.Expression<System.Func<DeclarationComparerOptions, T>> expression)
 	{
-		if (expression.Body is System.Linq.Expressions.MemberExpression me)
+		var prefixLookup = new Dictionary<string, string>();
+		foreach (var property in typeof(DeclarationComparerOptions).GetProperties())
 		{
-			return "dotnet_diagnostic.rms0001." + me.Member.Name.ToSnakeCase();
+			prefixLookup[property.Name] = property.Name switch
+			{
+				nameof(DeclarationComparerOptions.AccessibilityOrder) => "dotnet_diagnostic.rms0005.",
+				nameof(DeclarationComparerOptions.IdentifierNames) => "dotnet_diagnostic.rms0007.",
+				nameof(DeclarationComparerOptions.ArityOrder) => "dotnet_diagnostic.rms0008.",
+				nameof(DeclarationComparerOptions.ExplicitInterfaceSpecifiers) => "dotnet_diagnostic.rms0006.",
+				nameof(DeclarationComparerOptions.FieldOrder) => "dotnet_diagnostic.rms0004.",
+				nameof(DeclarationComparerOptions.KindOrder) => "dotnet_diagnostic.rms0002.",
+				nameof(DeclarationComparerOptions.MergeEvents) => "dotnet_diagnostic.rms0002.",
+				nameof(DeclarationComparerOptions.OperatorOrder) => "dotnet_diagnostic.rms0007.",
+				nameof(DeclarationComparerOptions.ParameterNames) => "dotnet_diagnostic.rms0010.",
+				nameof(DeclarationComparerOptions.ParameterTypeNames) => "dotnet_diagnostic.rms0009.",
+				nameof(DeclarationComparerOptions.ReferenceParameterOrder) => "dotnet_diagnostic.rms0009.",
+				nameof(DeclarationComparerOptions.SortOrders) => "dotnet_diagnostic.rms_shared.",
+				nameof(DeclarationComparerOptions.Static) => "dotnet_diagnostic.rms0003.",
+				nameof(DeclarationComparerOptions.UnknownAccessibilityOrder) => "dotnet_diagnostic.rms0005.",
+				nameof(DeclarationComparerOptions.UnknownFieldMutabilityOrder) => "dotnet_diagnostic.rms0004.",
+				nameof(DeclarationComparerOptions.UnknownKindOrder) => "dotnet_diagnostic.rms0001.",
+				nameof(DeclarationComparerOptions.UnknownOperatorTokenOrder) => "dotnet_diagnostic.rms0007.",
+#pragma warning disable RCS1079, RCS1140
+				_ => throw new NotImplementedException($"Property {property.Name} prefix not assigned.")
+#pragma warning restore RCS1079, RCS1140
+			};
+		}
+		if (expression.Body is System.Linq.Expressions.MemberExpression memberExpression)
+		{
+			return prefixLookup[memberExpression.Member.Name] + memberExpression.Member.Name.ToSnakeCase();
 		}
 		else
 		{
-			throw new System.ArgumentException("Expression is not a member access", nameof(expression));
+			throw new ArgumentException("Expression is not a member access", nameof(expression));
 		}
 	}
 
@@ -250,7 +278,7 @@ public class UnitTests : XunitDiagnosticVerifier<MemberSorterAnalyzer, MemberSor
 		const string expectedFix = "class test\r\n{\r\n    int A;\r\n    int B;\r\n}\r\n";
 		var config = new Dictionary<string, string>()
 		{
-			[MakePropertyKey(dco => dco.AlphabeticalIdentifiers)] = MakeEnumValue(IdentifierOrder.Alphabetical),
+			[MakePropertyKey(dco => dco.IdentifierNames)] = MakeEnumValue(IdentifierOrder.Alphabetical),
 			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Identifier)
 		};
 
@@ -263,7 +291,7 @@ public class UnitTests : XunitDiagnosticVerifier<MemberSorterAnalyzer, MemberSor
 		var source = TestCode.Parse("class test\r\n{\r\n    int B;\r\n    int A;\r\n}\r\n");
 		var config = new Dictionary<string, string>()
 		{
-			[MakePropertyKey(dco => dco.AlphabeticalIdentifiers)] = MakeEnumValue(IdentifierOrder.Default),
+			[MakePropertyKey(dco => dco.IdentifierNames)] = MakeEnumValue(IdentifierOrder.Default),
 			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Identifier)
 		};
 
@@ -276,7 +304,7 @@ public class UnitTests : XunitDiagnosticVerifier<MemberSorterAnalyzer, MemberSor
 		var source = TestCode.Parse("class test\r\n{\r\n    int B;\r\n    int A;\r\n}\r\n");
 		var config = new Dictionary<string, string>()
 		{
-			[MakePropertyKey(dco => dco.AlphabeticalIdentifiers)] = MakeEnumValue(IdentifierOrder.ReverseAlphabetical),
+			[MakePropertyKey(dco => dco.IdentifierNames)] = MakeEnumValue(IdentifierOrder.ReverseAlphabetical),
 			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Identifier)
 		};
 
@@ -414,7 +442,7 @@ public class UnitTests : XunitDiagnosticVerifier<MemberSorterAnalyzer, MemberSor
 		const string expectedFix = "class test\r\n{\r\n    void Method(string a) => throw new System.NotImplementedException();\r\n    void Method(double b) => throw new System.NotImplementedException();\r\n    void Method(int c) => throw new System.NotImplementedException();\r\n}\r\n";
 		var config = new Dictionary<string, string>()
 		{
-			[MakePropertyKey(dco => dco.AlphabeticalIdentifiers)] = MakeEnumValue(IdentifierOrder.Alphabetical),
+			[MakePropertyKey(dco => dco.ParameterNames)] = MakeEnumValue(IdentifierOrder.Alphabetical),
 			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.ParameterNames)
 		};
 
@@ -427,7 +455,7 @@ public class UnitTests : XunitDiagnosticVerifier<MemberSorterAnalyzer, MemberSor
 		var source = TestCode.Parse("class test\r\n{\r\n    void Method(int c) => throw new System.NotImplementedException();\r\n    void Method(string a) => throw new System.NotImplementedException();\r\n    void Method(double b) => throw new System.NotImplementedException();\r\n}\r\n");
 		var config = new Dictionary<string, string>()
 		{
-			[MakePropertyKey(dco => dco.AlphabeticalIdentifiers)] = MakeEnumValue(IdentifierOrder.Default),
+			[MakePropertyKey(dco => dco.ParameterNames)] = MakeEnumValue(IdentifierOrder.Default),
 			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.ParameterNames)
 		};
 
@@ -441,7 +469,7 @@ public class UnitTests : XunitDiagnosticVerifier<MemberSorterAnalyzer, MemberSor
 		const string expectedFix = "class test\r\n{\r\n    void Method(double b) => throw new System.NotImplementedException();\r\n    void Method(int c) => throw new System.NotImplementedException();\r\n    void Method(string a) => throw new System.NotImplementedException();\r\n}\r\n";
 		var config = new Dictionary<string, string>()
 		{
-			[MakePropertyKey(dco => dco.AlphabeticalIdentifiers)] = MakeEnumValue(IdentifierOrder.Alphabetical),
+			[MakePropertyKey(dco => dco.ParameterTypeNames)] = MakeEnumValue(IdentifierOrder.Alphabetical),
 			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.ParameterTypes)
 		};
 
@@ -454,7 +482,7 @@ public class UnitTests : XunitDiagnosticVerifier<MemberSorterAnalyzer, MemberSor
 		var source = TestCode.Parse("class test\r\n{\r\n    void Method(int c) => throw new System.NotImplementedException();\r\n    void Method(string a) => throw new System.NotImplementedException();\r\n    void Method(double b) => throw new System.NotImplementedException();\r\n}\r\n");
 		var config = new Dictionary<string, string>()
 		{
-			[MakePropertyKey(dco => dco.AlphabeticalIdentifiers)] = MakeEnumValue(IdentifierOrder.Default),
+			[MakePropertyKey(dco => dco.ParameterTypeNames)] = MakeEnumValue(IdentifierOrder.Default),
 			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.ParameterTypes)
 		};
 

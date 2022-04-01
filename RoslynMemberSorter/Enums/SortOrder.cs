@@ -21,7 +21,7 @@ public enum SortOrder
 	FieldOrder,
 
 	/// <summary>
-	/// Sort members based on their name or operator token. This uses the order defined by <see cref="DeclarationComparerOptions.AlphabeticalIdentifiers" /> for named members or <see cref="DeclarationComparerOptions.OperatorOrder" /> for operators.
+	/// Sort members based on their name or operator token. This uses the order defined by <see cref="DeclarationComparerOptions.IdentifierNames" /> for named members or <see cref="DeclarationComparerOptions.OperatorOrder" /> for operators.
 	/// </summary>
 	Identifier,
 
@@ -36,14 +36,14 @@ public enum SortOrder
 	ParameterArity,
 
 	/// <summary>
-	/// Sort method-like members based on their parameter types. This applies to constructors, delegates, indexers, and methods an uses the orders defined by <see cref="DeclarationComparerOptions.AlphabeticalIdentifiers" /> and <see cref="DeclarationComparerOptions.ReferenceParameterOrder" />.
-	/// </summary>
-	ParameterTypes,
-
-	/// <summary>
-	/// Sort method-like members based on their parameter names. This applies to constructors, delegates, indexers, and methods an uses the orders defined by <see cref="DeclarationComparerOptions.AlphabeticalIdentifiers" />.
+	/// Sort method-like members based on their parameter names. This applies to constructors, delegates, indexers, and methods an uses the orders defined by <see cref="DeclarationComparerOptions.ParameterNames" />.
 	/// </summary>
 	ParameterNames,
+
+	/// <summary>
+	/// Sort method-like members based on their parameter types. This applies to constructors, delegates, indexers, and methods an uses the orders defined by <see cref="DeclarationComparerOptions.ParameterTypeNames" /> and <see cref="DeclarationComparerOptions.ReferenceParameterOrder" />.
+	/// </summary>
+	ParameterTypes,
 
 	/// <summary>
 	/// Sort members based on their static or instance status. This uses the order defined by <see cref="DeclarationComparerOptions.Static" />.

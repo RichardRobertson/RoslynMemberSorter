@@ -45,7 +45,7 @@ public sealed class DeclarationComparerOptions
 	/// <summary>
 	/// Indicates how names should be sorted.
 	/// </summary>
-	public IdentifierOrder AlphabeticalIdentifiers
+	public IdentifierOrder IdentifierNames
 	{
 		get;
 		set;
@@ -167,6 +167,24 @@ public sealed class DeclarationComparerOptions
 	);
 
 	/// <summary>
+	/// Indicates how parameter type names should be sorted.
+	/// </summary>
+	public IdentifierOrder ParameterTypeNames
+	{
+		get;
+		set;
+	} = IdentifierOrder.Alphabetical;
+
+	/// <summary>
+	/// Indicates how parameter names should be sorted.
+	/// </summary>
+	public IdentifierOrder ParameterNames
+	{
+		get;
+		set;
+	} = IdentifierOrder.Alphabetical;
+
+	/// <summary>
 	/// Indicates the order in which parameters that have a <see langword="ref" /> modifier keyword should be sorted compared to those that do not.
 	/// </summary>
 	public Order ReferenceParameterOrder
@@ -262,11 +280,37 @@ public sealed class DeclarationComparerOptions
 	/// </summary>
 	/// <param name="options">The config to read property names and values from.</param>
 	/// <returns>A new <see cref="DeclarationComparerOptions" /> using the given property values.</returns>
-	/// <remarks>Config options are prefixed with <c>"dotnet_diagnostic.rms0001."</c>. Property names are stored in lower snake case. So <see cref="SortOrders" /> would be keyed as <c>"dotnet_diagnostic.rms0001.sort_orders"</c>.</remarks>
+	/// <remarks>Config options are prefixed with <c>"dotnet_diagnostic.rms####."</c>. Property names are stored in lower snake case. So <see cref="SortOrders" /> would be keyed as <c>"dotnet_diagnostic.rms0001.sort_orders"</c>.</remarks>
 	public static DeclarationComparerOptions FromAnalyzerConfigOptions(AnalyzerConfigOptions options)
 	{
-		const string prefix = "dotnet_diagnostic.rms0001.";
-		return FromFunc(options.TryGetValue, prefix);
+		var prefixLookup = new Dictionary<string, string>();
+		foreach (var property in typeof(DeclarationComparerOptions).GetProperties())
+		{
+			prefixLookup[property.Name] = property.Name switch
+			{
+				nameof(AccessibilityOrder) => "dotnet_diagnostic.rms0005.",
+				nameof(IdentifierNames) => "dotnet_diagnostic.rms0007.",
+				nameof(ArityOrder) => "dotnet_diagnostic.rms0008.",
+				nameof(ExplicitInterfaceSpecifiers) => "dotnet_diagnostic.rms0006.",
+				nameof(FieldOrder) => "dotnet_diagnostic.rms0004.",
+				nameof(KindOrder) => "dotnet_diagnostic.rms0002.",
+				nameof(MergeEvents) => "dotnet_diagnostic.rms0002.",
+				nameof(OperatorOrder) => "dotnet_diagnostic.rms0007.",
+				nameof(ParameterNames) => "dotnet_diagnostic.rms0010.",
+				nameof(ParameterTypeNames) => "dotnet_diagnostic.rms0009.",
+				nameof(ReferenceParameterOrder) => "dotnet_diagnostic.rms0009.",
+				nameof(SortOrders) => "dotnet_diagnostic.rms_shared.",
+				nameof(Static) => "dotnet_diagnostic.rms0003.",
+				nameof(UnknownAccessibilityOrder) => "dotnet_diagnostic.rms0005.",
+				nameof(UnknownFieldMutabilityOrder) => "dotnet_diagnostic.rms0004.",
+				nameof(UnknownKindOrder) => "dotnet_diagnostic.rms0001.",
+				nameof(UnknownOperatorTokenOrder) => "dotnet_diagnostic.rms0007.",
+#pragma warning disable RCS1079, RCS1140
+				_ => throw new NotImplementedException($"Property {property.Name} prefix not assigned.")
+#pragma warning restore RCS1079, RCS1140
+			};
+		}
+		return FromFunc(options.TryGetValue, prefixLookup);
 	}
 
 	/// <summary>
@@ -277,7 +321,7 @@ public sealed class DeclarationComparerOptions
 	/// <remarks>Property names are stored in lower snake case. So <see cref="SortOrders" /> would be keyed as <c>"sort_orders"</c>.</remarks>
 	public static DeclarationComparerOptions FromDictionary(IReadOnlyDictionary<string, string?> dictionary)
 	{
-		return FromFunc(dictionary.TryGetValue, string.Empty);
+		return FromFunc(dictionary.TryGetValue);
 	}
 
 	/// <summary>
@@ -301,7 +345,7 @@ public sealed class DeclarationComparerOptions
 					comparers.Add(new FieldDeclarationMutabilityComparer(FieldOrder, UnknownFieldMutabilityOrder));
 					break;
 				case SortOrder.Identifier:
-					comparers.Add(new IdentifierComparer(AlphabeticalIdentifiers, OperatorOrder, UnknownOperatorTokenOrder));
+					comparers.Add(new IdentifierComparer(IdentifierNames, OperatorOrder, UnknownOperatorTokenOrder));
 					break;
 				case SortOrder.Kind:
 					comparers.Add(new KindComparer(KindOrder, UnknownKindOrder, MergeEvents));
@@ -310,10 +354,10 @@ public sealed class DeclarationComparerOptions
 					comparers.Add(new ParameterArityComparer(ArityOrder));
 					break;
 				case SortOrder.ParameterTypes:
-					comparers.Add(new ParameterTypeComparer(AlphabeticalIdentifiers, ReferenceParameterOrder));
+					comparers.Add(new ParameterTypeComparer(ParameterTypeNames, ReferenceParameterOrder));
 					break;
 				case SortOrder.ParameterNames:
-					comparers.Add(new ParameterNameComparer(AlphabeticalIdentifiers));
+					comparers.Add(new ParameterNameComparer(ParameterNames));
 					break;
 				case SortOrder.Static:
 					comparers.Add(new IsStaticComparer(Static));
@@ -372,15 +416,19 @@ public sealed class DeclarationComparerOptions
 	/// Creates a new <see cref="DeclarationComparerOptions" /> instance from the given property name and value pairs.
 	/// </summary>
 	/// <param name="tryGetFunc">A delegate pointing to a keyed collection to read properties from.</param>
-	/// <param name="prefix">A <see cref="string" /> to prepend to all key names passed to <paramref name="tryGetFunc" />.</param>
+	/// <param name="prefixLookup">An optional dictionary of property name keys to prefix strings to pass to <paramref name="tryGetFunc" />.</param>
 	/// <returns>A new <see cref="DeclarationComparerOptions" /> using the given property values.</returns>
 	/// <remarks>Property names are stored in lower snake case. So <see cref="SortOrders" /> would be keyed as <c>"sort_orders"</c>.</remarks>
-	private static DeclarationComparerOptions FromFunc(TryGetDelegate tryGetFunc, string prefix)
+	private static DeclarationComparerOptions FromFunc(TryGetDelegate tryGetFunc, IDictionary<string, string>? prefixLookup = null)
 	{
 		var options = new DeclarationComparerOptions();
 		foreach (var property in typeof(DeclarationComparerOptions).GetProperties())
 		{
-			if (tryGetFunc(prefix + property.Name.ToSnakeCase(), out var value) && value is not null)
+			if (prefixLookup?.TryGetValue(property.Name, out var prefixString) != true)
+			{
+				prefixString = null;
+			}
+			if (tryGetFunc(prefixString + property.Name.ToSnakeCase(), out var value) && value is not null)
 			{
 				if (property.PropertyType == typeof(ImmutableArray<Accessibility>))
 				{
