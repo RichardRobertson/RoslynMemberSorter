@@ -31,9 +31,19 @@ public enum SortOrder
 	Kind,
 
 	/// <summary>
-	/// Sort method-like members based on ther parameters. This applies to constructors, delegates, indexers, and methods an uses the orders defined by <see cref="DeclarationComparerOptions.LowArity" /> and <see cref="DeclarationComparerOptions.ParameterSortStyle" />.
+	/// Sort method-like members based on their parameter arity. This applies to constructors, delegates, indexers, and methods an uses the orders defined by <see cref="DeclarationComparerOptions.ArityOrder" />.
 	/// </summary>
-	Parameters,
+	ParameterArity,
+
+	/// <summary>
+	/// Sort method-like members based on their parameter types. This applies to constructors, delegates, indexers, and methods an uses the orders defined by <see cref="DeclarationComparerOptions.AlphabeticalIdentifiers" /> and <see cref="DeclarationComparerOptions.ReferenceParameterOrder" />.
+	/// </summary>
+	ParameterTypes,
+
+	/// <summary>
+	/// Sort method-like members based on their parameter names. This applies to constructors, delegates, indexers, and methods an uses the orders defined by <see cref="DeclarationComparerOptions.AlphabeticalIdentifiers" />.
+	/// </summary>
+	ParameterNames,
 
 	/// <summary>
 	/// Sort members based on their static or instance status. This uses the order defined by <see cref="DeclarationComparerOptions.Static" />.

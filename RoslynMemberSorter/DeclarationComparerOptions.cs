@@ -45,11 +45,11 @@ public sealed class DeclarationComparerOptions
 	/// <summary>
 	/// Indicates how names should be sorted.
 	/// </summary>
-	public NameOrder AlphabeticalIdentifiers
+	public IdentifierOrder AlphabeticalIdentifiers
 	{
 		get;
 		set;
-	} = NameOrder.Alphabetical;
+	} = IdentifierOrder.Alphabetical;
 
 	/// <summary>
 	/// Indicates how parameter arity should be sorted.
@@ -167,15 +167,6 @@ public sealed class DeclarationComparerOptions
 	);
 
 	/// <summary>
-	/// Indicates how parameter lists should be compared.
-	/// </summary>
-	public ParameterSortStyle ParameterSortStyle
-	{
-		get;
-		set;
-	} = ParameterSortStyle.SortTypes;
-
-	/// <summary>
 	/// Indicates the order in which parameters that have a <see langword="ref" /> modifier keyword should be sorted compared to those that do not.
 	/// </summary>
 	public Order ReferenceParameterOrder
@@ -199,7 +190,8 @@ public sealed class DeclarationComparerOptions
 		SortOrder.Accessibility,
 		SortOrder.ExplicitInterfaceSpecifier,
 		SortOrder.Identifier,
-		SortOrder.Parameters
+		SortOrder.ParameterArity,
+		SortOrder.ParameterTypes
 	);
 
 	/// <summary>Indicates how static and instance members should be handled.</summary>
@@ -291,8 +283,8 @@ public sealed class DeclarationComparerOptions
 	/// <summary>
 	/// Creates a comparer that matches the current settings.
 	/// </summary>
-	/// <returns>An <see cref="IComparer{T}" /> of <see cref="MemberDeclarationSyntax" /></returns>
-	public IComparer<MemberDeclarationSyntax> ToCSharpComparer()
+	/// <returns>A <see cref="MultiComparer{T}" /> of <see cref="MemberDeclarationSyntax" /></returns>
+	public MultiComparer<MemberDeclarationSyntax> ToCSharpComparer()
 	{
 		var comparers = new List<IComparer<MemberDeclarationSyntax>>();
 		foreach (var sort in SortOrders)
@@ -314,8 +306,14 @@ public sealed class DeclarationComparerOptions
 				case SortOrder.Kind:
 					comparers.Add(new KindComparer(KindOrder, UnknownKindOrder, MergeEvents));
 					break;
-				case SortOrder.Parameters:
-					comparers.Add(new ParametersComparer(ArityOrder, ParameterSortStyle, ReferenceParameterOrder));
+				case SortOrder.ParameterArity:
+					comparers.Add(new ParameterArityComparer(ArityOrder));
+					break;
+				case SortOrder.ParameterTypes:
+					comparers.Add(new ParameterTypeComparer(AlphabeticalIdentifiers, ReferenceParameterOrder));
+					break;
+				case SortOrder.ParameterNames:
+					comparers.Add(new ParameterNameComparer(AlphabeticalIdentifiers));
 					break;
 				case SortOrder.Static:
 					comparers.Add(new IsStaticComparer(Static));
@@ -403,16 +401,9 @@ public sealed class DeclarationComparerOptions
 						property.SetValue(options, sortOrder);
 					}
 				}
-				else if (property.PropertyType == typeof(ParameterSortStyle))
+				else if (property.PropertyType == typeof(IdentifierOrder))
 				{
-					if (Enum.TryParse<ParameterSortStyle>(CleanString(value), true, out var parameterSortStyle))
-					{
-						property.SetValue(options, parameterSortStyle);
-					}
-				}
-				else if (property.PropertyType == typeof(NameOrder))
-				{
-					if (Enum.TryParse<NameOrder>(CleanString(value), true, out var nameOrder))
+					if (Enum.TryParse<IdentifierOrder>(CleanString(value), true, out var nameOrder))
 					{
 						property.SetValue(options, nameOrder);
 					}

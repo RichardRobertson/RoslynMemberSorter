@@ -1,9 +1,9 @@
-using System;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using RoslynMemberSorter.Comparers.CSharp;
 
 namespace RoslynMemberSorter;
 
@@ -17,31 +17,57 @@ public sealed class MemberSorterAnalyzer : DiagnosticAnalyzer
 	public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
 	{
 		get;
-	} = ImmutableArray.Create(DiagnosticIds.SortMembers);
+	} = ImmutableArray.Create
+	(
+		DiagnosticIds.AccessibilityOutOfOrder,
+		DiagnosticIds.ExplicitInterfaceSpecifierOutOfOrder,
+		DiagnosticIds.FieldOutOfOrder,
+		DiagnosticIds.IdentifierOutOfOrder,
+		DiagnosticIds.KindOutOfOrder,
+		DiagnosticIds.ParameterArityOutOfOrder,
+		DiagnosticIds.ParameterNameOutOfOrder,
+		DiagnosticIds.ParameterTypeOutOfOrder,
+		DiagnosticIds.StaticOutOfOrder
+	);
 
 	/// <inheritdoc />
 	public override void Initialize(AnalysisContext context)
 	{
 		context.EnableConcurrentExecution();
 		context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
-		context.RegisterSyntaxNodeAction(AnalyzeFileScopedNamespace, SyntaxKind.FileScopedNamespaceDeclaration);
-		context.RegisterSyntaxNodeAction(AnalyzeNamespace, SyntaxKind.NamespaceDeclaration);
+		context.RegisterSyntaxNodeAction(AnalyzeNamespace, SyntaxKind.FileScopedNamespaceDeclaration, SyntaxKind.NamespaceDeclaration);
 		context.RegisterSyntaxNodeAction(AnalyzeType, SyntaxKind.ClassDeclaration, SyntaxKind.InterfaceDeclaration, SyntaxKind.RecordDeclaration, SyntaxKind.RecordStructDeclaration, SyntaxKind.StructDeclaration);
 	}
 
 	/// <summary>
-	/// Analyzes a file scoped namespace to see if its members are in order.
+	/// Analyzes a member list to see if they are in order.
 	/// </summary>
 	/// <param name="context">The context of the analysis.</param>
-	private void AnalyzeFileScopedNamespace(SyntaxNodeAnalysisContext context)
+	/// <param name="members">The list of members.</param>
+	private void AnalyzeMembers(SyntaxNodeAnalysisContext context, SyntaxList<MemberDeclarationSyntax> members)
 	{
 		var options = context.Options.AnalyzerConfigOptionsProvider.GetOptions(context.Node.SyntaxTree);
 		var declarationComparerOptions = DeclarationComparerOptions.FromAnalyzerConfigOptions(options);
 		var comparer = declarationComparerOptions.ToCSharpComparer();
-		var fileScopedNamespaceDeclaration = (FileScopedNamespaceDeclarationSyntax)context.Node;
-		if (!fileScopedNamespaceDeclaration.Members.IsOrdered(comparer))
+		foreach ((var member, var comparerMatched) in comparer.FindUnordered(members))
 		{
-			context.ReportDiagnostic(Diagnostic.Create(DiagnosticIds.SortMembers, fileScopedNamespaceDeclaration.Name.GetLocation(), declarationComparerOptions.ToImmutableDictionary()));
+			var diagnostic = comparerMatched switch
+			{
+				AccessibilityComparer => DiagnosticIds.AccessibilityOutOfOrder,
+				FieldDeclarationMutabilityComparer => DiagnosticIds.FieldOutOfOrder,
+				HasExplicitInterfaceSpecifierComparer => DiagnosticIds.ExplicitInterfaceSpecifierOutOfOrder,
+				IdentifierComparer => DiagnosticIds.IdentifierOutOfOrder,
+				IsStaticComparer => DiagnosticIds.StaticOutOfOrder,
+				KindComparer => DiagnosticIds.KindOutOfOrder,
+				ParameterArityComparer => DiagnosticIds.ParameterArityOutOfOrder,
+				ParameterTypeComparer => DiagnosticIds.ParameterTypeOutOfOrder,
+				ParameterNameComparer => DiagnosticIds.ParameterNameOutOfOrder,
+				_ => null
+			};
+			if (diagnostic is not null)
+			{
+				context.ReportDiagnostic(Diagnostic.Create(diagnostic, member.GetLocation(), declarationComparerOptions.ToImmutableDictionary(), DiagnosticIds.ProvideMessageParameters(diagnostic, member, members.Before(member))));
+			}
 		}
 	}
 
@@ -51,14 +77,7 @@ public sealed class MemberSorterAnalyzer : DiagnosticAnalyzer
 	/// <param name="context">The context of the analysis.</param>
 	private void AnalyzeNamespace(SyntaxNodeAnalysisContext context)
 	{
-		var options = context.Options.AnalyzerConfigOptionsProvider.GetOptions(context.Node.SyntaxTree);
-		var declarationComparerOptions = DeclarationComparerOptions.FromAnalyzerConfigOptions(options);
-		var comparer = declarationComparerOptions.ToCSharpComparer();
-		var namespaceDeclaration = (NamespaceDeclarationSyntax)context.Node;
-		if (!namespaceDeclaration.Members.IsOrdered(comparer))
-		{
-			context.ReportDiagnostic(Diagnostic.Create(DiagnosticIds.SortMembers, namespaceDeclaration.Name.GetLocation(), declarationComparerOptions.ToImmutableDictionary()));
-		}
+		AnalyzeMembers(context, ((BaseNamespaceDeclarationSyntax)context.Node).Members);
 	}
 
 	/// <summary>
@@ -67,13 +86,6 @@ public sealed class MemberSorterAnalyzer : DiagnosticAnalyzer
 	/// <param name="context">The context of the analysis.</param>
 	private void AnalyzeType(SyntaxNodeAnalysisContext context)
 	{
-		var options = context.Options.AnalyzerConfigOptionsProvider.GetOptions(context.Node.SyntaxTree);
-		var declarationComparerOptions = DeclarationComparerOptions.FromAnalyzerConfigOptions(options);
-		var comparer = declarationComparerOptions.ToCSharpComparer();
-		var typeDeclaration = (TypeDeclarationSyntax)context.Node;
-		if (!typeDeclaration.Members.IsOrdered(comparer))
-		{
-			context.ReportDiagnostic(Diagnostic.Create(DiagnosticIds.SortMembers, typeDeclaration.Identifier.GetLocation(), declarationComparerOptions.ToImmutableDictionary()));
-		}
+		AnalyzeMembers(context, ((TypeDeclarationSyntax)context.Node).Members);
 	}
 }

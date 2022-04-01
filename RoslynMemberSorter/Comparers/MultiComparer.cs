@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 
@@ -27,7 +28,7 @@ public sealed class MultiComparer<T> : IComparer<T>
 	/// <summary>
 	/// Gets or sets an ordered set of comparers used to order values.
 	/// </summary>
-	/// <value>An <see cref="ImmutableArray{T}" /> of <see cref="IComparer{T}" /> used in <see cref="Compare" />.</value>
+	/// <value>An <see cref="ImmutableArray{T}" /> of <see cref="IComparer{T}" /> used in <see cref="Compare(T?, T?)" />.</value>
 	public ImmutableArray<IComparer<T>> Comparers
 	{
 		get;
@@ -67,7 +68,7 @@ public sealed class MultiComparer<T> : IComparer<T>
 	/// 		</item>
 	/// 	</list>
 	/// </returns>
-	public int Compare(T? x, T? y, out IComparer<T>? comparerMatched)
+	private int Compare(T? x, T? y, out IComparer<T>? comparerMatched)
 	{
 		comparerMatched = null;
 		if (ReferenceEquals(x, y))
@@ -92,5 +93,65 @@ public sealed class MultiComparer<T> : IComparer<T>
 			}
 		}
 		return 0;
+	}
+
+	/// <summary>
+	/// Finds the first index where this item can be inserted without being compared greater than the preceding item.
+	/// </summary>
+	/// <param name="collection">An <see cref="IEnumerable{T}" /> to try to fix this item into.</param>
+	/// <param name="item">The item to find an index for.</param>
+	/// <returns>The lowest index where <paramref name="item" /> can be inserted and not be compared greater than the preceding item.</returns>
+	public int FindOrderedIndexForItem(IEnumerable<T> collection, T item)
+	{
+		var enumerator = collection.GetEnumerator();
+		if (!enumerator.MoveNext())
+		{
+			return 0;
+		}
+		int i;
+		var lastElement = enumerator.Current;
+		for (i = 0; enumerator.MoveNext(); i++)
+		{
+			if (Compare(lastElement, item) > 0)
+			{
+				return i;
+			}
+			lastElement = enumerator.Current;
+		}
+		return i;
+	}
+
+	/// <summary>
+	/// Returns elements that are out of order when compared to the previous element using this comparer.
+	/// </summary>
+	/// <param name="collection">An <see cref="IEnumerable{T}" /> to check the order of.</param>
+	/// <returns>An <see cref="IEnumerable{T}" /> of <see cref="Tuple{T1, T2}" /> of (<typeparamref name="T" /> and <see cref="IComparer{T}" /> of <typeparamref name="T" />) containing elements that are out of order.</returns>
+	/// <exception cref="ArgumentNullException"><paramref name="collection" /> or <paramref name="comparer" /> is <see langword="null" />.</exception>
+	public IEnumerable<(T Item, IComparer<T> Comparer)> FindUnordered(IEnumerable<T> collection)
+	{
+		if (collection is null)
+		{
+			throw new ArgumentNullException(nameof(collection));
+		}
+		return FindUnorderedImpl(collection);
+
+		IEnumerable<(T Item, IComparer<T> Comparer)> FindUnorderedImpl(IEnumerable<T> collection)
+		{
+			var enumerator = collection.GetEnumerator();
+			if (!enumerator.MoveNext())
+			{
+				yield break;
+			}
+			var lastElement = enumerator.Current;
+			while (enumerator.MoveNext())
+			{
+				var currentElement = enumerator.Current;
+				if (Compare(lastElement, currentElement, out var comparerMatched) > 0)
+				{
+					yield return (currentElement, comparerMatched!);
+				}
+				lastElement = currentElement;
+			}
+		}
 	}
 }

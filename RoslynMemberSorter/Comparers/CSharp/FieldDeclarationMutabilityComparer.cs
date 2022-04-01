@@ -28,6 +28,27 @@ public sealed class FieldDeclarationMutabilityComparer : IndexedComparer<FieldDe
 	protected override IEqualityComparer<FieldMutability> QualityComparer => EqualityComparer<FieldMutability>.Default;
 
 	/// <summary>
+	/// Identifies the mutability of a field declaration.
+	/// </summary>
+	/// <param name="field">The field to check.</param>
+	/// <returns><see cref="FieldMutability.Const" /> if the field has a <see langword="const" /> modifier keyword; <see cref="FieldMutability.ReadOnly" /> if the field has a <see langword="readonly" /> modifier keyword; otherwise <see cref="FieldMutability.Mutable" />.</returns>
+	public static FieldMutability GetFieldMutability(FieldDeclarationSyntax field)
+	{
+		if (field.Modifiers.Any(SyntaxKind.ConstKeyword))
+		{
+			return FieldMutability.Const;
+		}
+		else if (field.Modifiers.Any(SyntaxKind.ReadOnlyKeyword))
+		{
+			return FieldMutability.ReadOnly;
+		}
+		else
+		{
+			return FieldMutability.Mutable;
+		}
+	}
+
+	/// <summary>
 	/// Compares two objects and returns a value indicating whether one should come before the other.
 	/// </summary>
 	/// <param name="x">The first object to compare.</param>
@@ -80,17 +101,6 @@ public sealed class FieldDeclarationMutabilityComparer : IndexedComparer<FieldDe
 	/// <inheritdoc />
 	protected override FieldMutability ProvideQuality(FieldDeclarationSyntax value)
 	{
-		if (value.Modifiers.Any(token => token.IsKind(SyntaxKind.ConstKeyword)))
-		{
-			return FieldMutability.Const;
-		}
-		else if (value.Modifiers.Any(token => token.IsKind(SyntaxKind.ReadOnlyKeyword)))
-		{
-			return FieldMutability.ReadOnly;
-		}
-		else
-		{
-			return FieldMutability.Mutable;
-		}
+		return GetFieldMutability(value);
 	}
 }

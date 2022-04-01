@@ -1,5 +1,8 @@
 using System;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using RoslynMemberSorter.Comparers.CSharp;
 
 namespace RoslynMemberSorter;
 
@@ -51,8 +54,128 @@ public static class DiagnosticIds
 	public static readonly DiagnosticDescriptor IdentifierOutOfOrder = new("RMS0007", "Member name out of order", "Member {0} should come before {1}.", "Style", DiagnosticSeverity.Info, true);
 
 	/// <summary>
-	/// The diagnostic RMS0008 indicating a particular member is out of order when sorted by identifier.
+	/// The diagnostic RMS0008 indicating a particular member is out of order when sorted by parameter arity.
 	/// </summary>
-	/// <remarks>Message format parameters are 0:name, 1:name, 2:"arity"/"types"/"names"</remarks>
-	public static readonly DiagnosticDescriptor ParametersOutOfOrder = new("RMS0008", "Member parameter list out of order", "Member {0} should come before {1} based on parameter {2}.", "Style", DiagnosticSeverity.Info, true);
+	/// <remarks>Message format parameters are 0:name, 1:arity, 2:name, 3:arity
+	public static readonly DiagnosticDescriptor ParameterArityOutOfOrder = new("RMS0008", "Member arity out of order", "Member {0} with arity {1} should come before {2} with arity {3}.", "Style", DiagnosticSeverity.Info, true);
+
+	/// <summary>
+	/// The diagnostic RMS0008 indicating a particular member is out of order when sorted by parameter arity.
+	/// </summary>
+	/// <remarks>Message format parameters are 0:name, 1:name
+	public static readonly DiagnosticDescriptor ParameterTypeOutOfOrder = new("RMS0009", "Member parameter type out of order", "Member {0} should come before {1} based on parameter types.", "Style", DiagnosticSeverity.Info, true);
+
+	/// <summary>
+	/// The diagnostic RMS0008 indicating a particular member is out of order when sorted by parameter arity.
+	/// </summary>
+	/// <remarks>Message format parameters are 0:name, 1:name
+	public static readonly DiagnosticDescriptor ParameterNameOutOfOrder = new("RMS0010", "Member parameter name out of order", "Member {0} should come before {1} based on parameter names.", "Style", DiagnosticSeverity.Info, true);
+
+	/// <summary>
+	/// Provides message format parameters for a diagnostic based on the two members being compared.
+	/// </summary>
+	/// <param name="diagnostic">The diagnostic to provide parameters for.</param>
+	/// <param name="current">The current member.</param>
+	/// <param name="previous">The previous member.</param>
+	/// <returns>An array of <see cref="string" /> to be passed as message format parameters.</returns>
+	public static string[] ProvideMessageParameters(DiagnosticDescriptor diagnostic, MemberDeclarationSyntax current, MemberDeclarationSyntax previous)
+	{
+		var currentName = IdentifierComparer.GetName(current) ?? "[name not found]";
+		var previousName = IdentifierComparer.GetName(previous) ?? "[name not found]";
+		if (ReferenceEquals(diagnostic, KindOutOfOrder))
+		{
+			return new string[] { currentName, KindStatus(current), previousName, KindStatus(previous) };
+
+			static string KindStatus(MemberDeclarationSyntax member)
+			{
+				return member.Kind().ToString();
+			}
+		}
+		else if (ReferenceEquals(diagnostic, StaticOutOfOrder))
+		{
+			return new string[] { currentName, StaticStatus(current), previousName, StaticStatus(previous) };
+
+			static string StaticStatus(MemberDeclarationSyntax member)
+			{
+				return member.Modifiers.Any(SyntaxKind.StaticKeyword) || member.Modifiers.Any(SyntaxKind.ConstKeyword) ? "static" : "instance";
+			}
+		}
+		else if (ReferenceEquals(diagnostic, FieldOutOfOrder))
+		{
+			return new string[] { currentName, FieldStatus(current), previousName, FieldStatus(previous) };
+
+			static string FieldStatus(MemberDeclarationSyntax member)
+			{
+				if (member is FieldDeclarationSyntax mField)
+				{
+					return FieldDeclarationMutabilityComparer.GetFieldMutability(mField).ToString();
+				}
+				else
+				{
+					return "[not a field]";
+				}
+			}
+		}
+		else if (ReferenceEquals(diagnostic, AccessibilityOutOfOrder))
+		{
+			return new string[] { currentName, AccessibilityStatus(current), previousName, AccessibilityStatus(previous) };
+
+			static string AccessibilityStatus(MemberDeclarationSyntax member)
+			{
+				return AccessibilityComparer.GetAccessibility(member).ToString();
+			}
+		}
+		else if (ReferenceEquals(diagnostic, ExplicitInterfaceSpecifierOutOfOrder))
+		{
+			return new string[] { currentName, ExplicitInterfaceSpecifierStatus(current, true), previousName, ExplicitInterfaceSpecifierStatus(previous, false) };
+
+			static string ExplicitInterfaceSpecifierStatus(MemberDeclarationSyntax member, bool isFirst)
+			{
+				if (HasExplicitInterfaceSpecifierComparer.HasExplicitInterfaceSpecifier(member))
+				{
+					return isFirst ? "has" : " not";
+				}
+				else
+				{
+					return isFirst ? "does not have" : string.Empty;
+				}
+			}
+		}
+		else if (ReferenceEquals(diagnostic, IdentifierOutOfOrder) || ReferenceEquals(diagnostic, ParameterTypeOutOfOrder) || ReferenceEquals(diagnostic, ParameterNameOutOfOrder))
+		{
+			return new string[] { currentName, previousName };
+		}
+		else if (ReferenceEquals(diagnostic, ParameterArityOutOfOrder))
+		{
+			return new string[] { currentName, ParameterArity(current), previousName, ParameterArity(previous) };
+
+			static string ParameterArity(MemberDeclarationSyntax member)
+			{
+				if (member is MethodDeclarationSyntax mMethod)
+				{
+					return mMethod.Arity.ToString();
+				}
+				else if (member is IndexerDeclarationSyntax mIndexer)
+				{
+					return mIndexer.ParameterList.Parameters.Count.ToString();
+				}
+				else if (member is ConstructorDeclarationSyntax mConstructor)
+				{
+					return mConstructor.ParameterList.Parameters.Count.ToString();
+				}
+				else if (member is DelegateDeclarationSyntax mDelegate)
+				{
+					return mDelegate.Arity.ToString();
+				}
+				else
+				{
+					return "[unknown]";
+				}
+			}
+		}
+		else
+		{
+			return Array.Empty<string>();
+		}
+	}
 }

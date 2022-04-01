@@ -16,7 +16,7 @@ public sealed class IdentifierComparer : IComparer<MemberDeclarationSyntax>
 	/// <param name="operatorTokenOrder">The order in which operator tokens should be sorted.</param>
 	/// <param name="unknownOperatorTokenOrder">Where operator tokens not found in <paramref name="operatorTokenOrder" /> should be sorted.</param>
 	/// <exception cref="InvalidEnumArgumentException"><paramref name="nameOrder" /> or <paramref name="unknownOperatorTokenOrder" /> is not a defined enum name on <see cref="Order" />.</exception>
-	public IdentifierComparer(NameOrder nameOrder, ImmutableArray<SyntaxKind> operatorTokenOrder, Order unknownOperatorTokenOrder)
+	public IdentifierComparer(IdentifierOrder nameOrder, ImmutableArray<SyntaxKind> operatorTokenOrder, Order unknownOperatorTokenOrder)
 	{
 		nameOrder.AssertValid();
 		NameOrder = nameOrder;
@@ -26,8 +26,8 @@ public sealed class IdentifierComparer : IComparer<MemberDeclarationSyntax>
 	/// <summary>
 	/// Gets a value indicating how names should be sorted.
 	/// </summary>
-	/// <value>One of the <see cref="Enums.NameOrder" /> enum values indicating how to sort names.</value>
-	public NameOrder NameOrder
+	/// <value>One of the <see cref="Enums.IdentifierOrder" /> enum values indicating how to sort names.</value>
+	public IdentifierOrder NameOrder
 	{
 		get;
 	}
@@ -84,14 +84,14 @@ public sealed class IdentifierComparer : IComparer<MemberDeclarationSyntax>
 		{
 			return OperatorComparer.Compare(xOperator, yOperator);
 		}
-		else if (NameOrder == NameOrder.Default)
+		else if (NameOrder == IdentifierOrder.Default)
 		{
 			return 0;
 		}
 		var xName = GetName(x);
 		var yName = GetName(y);
 		var nameComparison = StringComparer.Ordinal.Compare(xName, yName);
-		return NameOrder == NameOrder.Alphabetical ?  nameComparison : -nameComparison;
+		return NameOrder == IdentifierOrder.Alphabetical ?  nameComparison : -nameComparison;
 	}
 
 	/// <summary>
@@ -99,7 +99,7 @@ public sealed class IdentifierComparer : IComparer<MemberDeclarationSyntax>
 	/// </summary>
 	/// <param name="member">The member to check.</param>
 	/// <returns>A <see cref="string" /> indicating the name of the member; otherwise <see langword="null" /> if it does not have one.</returns>
-	private static string? GetName(MemberDeclarationSyntax member)
+	public static string? GetName(MemberDeclarationSyntax member)
 	{
 		if (member is FieldDeclarationSyntax mField)
 		{
@@ -132,6 +132,22 @@ public sealed class IdentifierComparer : IComparer<MemberDeclarationSyntax>
 		else if (member is BaseTypeDeclarationSyntax mBaseType)
 		{
 			return mBaseType.Identifier.ToString();
+		}
+		else if (member is IndexerDeclarationSyntax)
+		{
+			return "this[]";
+		}
+		else if (member is OperatorDeclarationSyntax mOperator)
+		{
+			return "operator " + mOperator.OperatorToken.ToString();
+		}
+		else if (member is ConstructorDeclarationSyntax)
+		{
+			return ".ctor()";
+		}
+		else if (member is DestructorDeclarationSyntax)
+		{
+			return "~()";
 		}
 		else
 		{

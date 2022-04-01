@@ -26,6 +26,6 @@ public sealed class IsStaticComparer : HasQualityComparer<MemberDeclarationSynta
 	/// <inheritdoc />
 	protected override bool HasQuality(MemberDeclarationSyntax value)
 	{
-		return value.Modifiers.Any(token => token.IsKind(SyntaxKind.StaticKeyword)) || value.Modifiers.Any(token => token.IsKind(SyntaxKind.ConstKeyword));
+		return value.Modifiers.Any(SyntaxKind.StaticKeyword) || value.Modifiers.Any(SyntaxKind.ConstKeyword);
 	}
 }

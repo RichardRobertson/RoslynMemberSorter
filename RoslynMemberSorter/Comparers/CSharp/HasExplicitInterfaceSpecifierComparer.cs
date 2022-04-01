@@ -21,22 +21,26 @@ public sealed class HasExplicitInterfaceSpecifierComparer : HasQualityComparer<M
 	{
 	}
 
-	/// <inheritdoc />
-	protected override bool HasQuality(MemberDeclarationSyntax value)
+	/// <summary>
+	/// Indicates whether a member has an explicit interface specifier.
+	/// </summary>
+	/// <param name="member">The member to check.</param>
+	/// <returns><see langword="true" /> if <paramref name="member" /> has an explicit interface specifier; otherwise <see langword="false" />.</returns>
+	public static bool HasExplicitInterfaceSpecifier(MemberDeclarationSyntax member)
 	{
-		if (value is MethodDeclarationSyntax mMethod)
+		if (member is MethodDeclarationSyntax mMethod)
 		{
 			return mMethod.ExplicitInterfaceSpecifier is not null;
 		}
-		else if (value is IndexerDeclarationSyntax mIndexer)
+		else if (member is IndexerDeclarationSyntax mIndexer)
 		{
 			return mIndexer.ExplicitInterfaceSpecifier is not null;
 		}
-		else if (value is PropertyDeclarationSyntax mProperty)
+		else if (member is PropertyDeclarationSyntax mProperty)
 		{
 			return mProperty.ExplicitInterfaceSpecifier is not null;
 		}
-		else if (value is EventDeclarationSyntax mEvent)
+		else if (member is EventDeclarationSyntax mEvent)
 		{
 			return mEvent.ExplicitInterfaceSpecifier is not null;
 		}
@@ -44,5 +48,11 @@ public sealed class HasExplicitInterfaceSpecifierComparer : HasQualityComparer<M
 		{
 			return false;
 		}
+	}
+
+	/// <inheritdoc />
+	protected override bool HasQuality(MemberDeclarationSyntax value)
+	{
+		return HasExplicitInterfaceSpecifier(value);
 	}
 }

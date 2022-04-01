@@ -27,79 +27,34 @@ public static class Extensions
 	}
 
 	/// <summary>
-	/// Returns elements that are out of order when compared to the previous element using <paramref name="comparer" />.
+	/// Gets the element immediately before <paramref name="element" />.
 	/// </summary>
-	/// <typeparam name="TSource">The type of the elements in <paramref name="source" />.</typeparam>
-	/// <param name="source">An <see cref="IEnumerable{T}" /> to check the order of.</param>
-	/// <param name="comparer">An <see cref="IComparer{T}" /> to compare elements.</param>
-	/// <returns>An <see cref="IEnumerable{T}" /> of <typeparamref name="TSource" /> containing elements that are out of order.</returns>
-	/// <exception cref="ArgumentNullException"><paramref name="source" /> or <paramref name="comparer" /> is <see langword="null" />.</exception>
-	public static IEnumerable<TSource> FindUnordered<TSource>(this IEnumerable<TSource> source, IComparer<TSource> comparer)
+	/// <typeparam name="T">The type of the collection.</typeparam>
+	/// <param name="collection">The collection to search.</param>
+	/// <param name="element">The element to match.</param>
+	/// <returns>The element immediately before <paramref name="element" />.</returns>
+	/// <exception cref="InvalidOperationException"><paramref name="collection" /> is empty or does not contain <paramref name="element" />.</exception>
+	/// <exception cref="ArgumentNullException"><paramref name="collection" /> is <see langword="null" />.</exception>
+	public static T Before<T>(this IEnumerable<T> collection, T element)
 	{
-		if (source is null)
+		if (collection is null)
 		{
-			throw new ArgumentNullException(nameof(source));
+			throw new ArgumentNullException(nameof(collection));
 		}
-		if (comparer is null)
-		{
-			throw new ArgumentNullException(nameof(comparer));
-		}
-		return FindUnorderedImpl(source, comparer);
-
-		static IEnumerable<TSource> FindUnorderedImpl(IEnumerable<TSource> source, IComparer<TSource> comparer)
-		{
-			var enumerator = source.GetEnumerator();
-			if (!enumerator.MoveNext())
-			{
-				yield break;
-			}
-			var lastElement = enumerator.Current;
-			while (enumerator.MoveNext())
-			{
-				var currentElement = enumerator.Current;
-				if (comparer.Compare(lastElement, currentElement) > 0)
-				{
-					yield return currentElement;
-				}
-				lastElement = currentElement;
-			}
-		}
-	}
-
-	/// <summary>
-	/// Checks to see if a collection is ordered.
-	/// </summary>
-	/// <typeparam name="TSource">The type of the elements in <paramref name="source" />.</typeparam>
-	/// <param name="source">An <see cref="IEnumerable{T}" /> to check the order of.</param>
-	/// <param name="comparer">An <see cref="IComparer{T}" /> to compare elements.</param>
-	/// <returns><see langword="true" /> if the collection is already ordered; otherwise <see langword="false" />.</returns>
-	/// <exception cref="ArgumentNullException"><paramref name="source" /> or <paramref name="comparer" /> is <see langword="null" />.</exception>
-	public static bool IsOrdered<TSource>(this IEnumerable<TSource> source, IComparer<TSource> comparer)
-	{
-		if (source is null)
-		{
-			throw new ArgumentNullException(nameof(source));
-		}
-		if (comparer is null)
-		{
-			throw new ArgumentNullException(nameof(comparer));
-		}
-		var enumerator = source.GetEnumerator();
+		var enumerator = collection.GetEnumerator();
 		if (!enumerator.MoveNext())
 		{
-			return true;
+			throw new InvalidOperationException("Collection is empty.");
 		}
-		var lastElement = enumerator.Current;
+		var last = enumerator.Current;
 		while (enumerator.MoveNext())
 		{
-			var currentElement = enumerator.Current;
-			if (comparer.Compare(lastElement, currentElement) > 0)
+			if (ReferenceEquals(element, enumerator.Current))
 			{
-				return false;
+				return last;
 			}
-			lastElement = currentElement;
 		}
-		return true;
+		throw new InvalidOperationException("Collection does not contain element.");
 	}
 
 	/// <summary>

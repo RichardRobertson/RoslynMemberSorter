@@ -29,16 +29,20 @@ public sealed class AccessibilityComparer : IndexedComparer<MemberDeclarationSyn
 	/// <inheritdoc />
 	protected override IEqualityComparer<Accessibility> QualityComparer => EqualityComparer<Accessibility>.Default;
 
-	/// <inheritdoc />
-	protected override Accessibility ProvideQuality(MemberDeclarationSyntax value)
+	/// <summary>
+	/// Gets the accessibility of a member.
+	/// </summary>
+	/// <param name="member">The member to check.</param>
+	/// <returns>One of the <see cref="Accessibility" /> enum values indicating the accessibility of <paramref name="member" />.</returns>
+	public static Accessibility GetAccessibility(MemberDeclarationSyntax member)
 	{
-		if (value.Modifiers.Any(token => token.IsKind(SyntaxKind.PublicKeyword)) || value.IsKind(SyntaxKind.NamespaceDeclaration))
+		if (member.Modifiers.Any(SyntaxKind.PublicKeyword) || member.IsKind(SyntaxKind.NamespaceDeclaration))
 		{
 			return Accessibility.Public;
 		}
-		else if (value.Modifiers.Any(token => token.IsKind(SyntaxKind.InternalKeyword)))
+		else if (member.Modifiers.Any(SyntaxKind.InternalKeyword))
 		{
-			if (value.Modifiers.Any(token => token.IsKind(SyntaxKind.ProtectedKeyword)))
+			if (member.Modifiers.Any(SyntaxKind.ProtectedKeyword))
 			{
 				return Accessibility.ProtectedOrInternal;
 			}
@@ -47,9 +51,9 @@ public sealed class AccessibilityComparer : IndexedComparer<MemberDeclarationSyn
 				return Accessibility.Internal;
 			}
 		}
-		else if (value.Modifiers.Any(token => token.IsKind(SyntaxKind.ProtectedKeyword)))
+		else if (member.Modifiers.Any(SyntaxKind.ProtectedKeyword))
 		{
-			if (value.Modifiers.Any(token => token.IsKind(SyntaxKind.PrivateKeyword)))
+			if (member.Modifiers.Any(SyntaxKind.PrivateKeyword))
 			{
 				return Accessibility.ProtectedAndInternal;
 			}
@@ -58,13 +62,13 @@ public sealed class AccessibilityComparer : IndexedComparer<MemberDeclarationSyn
 				return Accessibility.Protected;
 			}
 		}
-		else if (value.Modifiers.Any(token => token.IsKind(SyntaxKind.PrivateKeyword)))
+		else if (member.Modifiers.Any(SyntaxKind.PrivateKeyword))
 		{
 			return Accessibility.Private;
 		}
 		else
 		{
-			var xMajorParent = value.Ancestors().FirstOrDefault(node => node.IsKind(SyntaxKind.InterfaceDeclaration)
+			var xMajorParent = member.Ancestors().FirstOrDefault(node => node.IsKind(SyntaxKind.InterfaceDeclaration)
 				|| node.IsKind(SyntaxKind.ClassDeclaration)
 				|| node.IsKind(SyntaxKind.RecordDeclaration)
 				|| node.IsKind(SyntaxKind.RecordStructDeclaration)
@@ -82,5 +86,11 @@ public sealed class AccessibilityComparer : IndexedComparer<MemberDeclarationSyn
 				return Accessibility.Private;
 			}
 		}
+	}
+
+	/// <inheritdoc />
+	protected override Accessibility ProvideQuality(MemberDeclarationSyntax value)
+	{
+		return GetAccessibility(value);
 	}
 }

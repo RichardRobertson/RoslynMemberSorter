@@ -3,7 +3,7 @@ namespace RoslynMemberSorter.Enums;
 /// <summary>
 /// Indicates how to sort names.
 /// </summary>
-public enum NameOrder
+public enum IdentifierOrder
 {
 	/// <summary>
 	/// The name of a member is not taken into account when sorting members.

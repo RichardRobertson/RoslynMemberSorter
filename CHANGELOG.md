@@ -21,7 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         - `IdentifierComparer.OperatorComparer`
     - `IsStaticComparer`
     - `KindComparer`
-    - `ParametersComparer`
+    - `ParametersComparerBase`
+        - `ParameterArityComparer`
+        - `ParameterNameComparer`
+        - `ParameterTypeComparer`
 - `ArityOrder` enum which provides more clarity when sorting arity.
 - `DeclarationComparerOptions`
     - `ToCSharpComparer()` to create a new comparer chain from options.
@@ -37,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `DeclarationComparerOptions`
     - Property `Order SingleLineEvents` has changed to `bool MergeEvents`
     - Property `Order LowArity` has changed to `ArityOrder ArityOrder`
+- `NameOrder` enum renamed to `IdentifierOrder`
 
 ### Deprecated
 
@@ -48,8 +52,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- Tossed `RoslynMemberSorter.Accessibility` in favor of using `Microsoft.CodeAnalysis.Accessibility`.
+- `RoslynMemberSorter.Accessibility` enum in favor of using `Microsoft.CodeAnalysis.Accessibility`.
 - `DeclarationComparer` class in favor of new comparers.
+- `ParameterSortStyle` enum in favor of new comparers.
 
 ## [0.1.0-alpha] 2022-03-25
 
