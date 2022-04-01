@@ -48,10 +48,13 @@ public sealed class ParameterTypeComparer : ParametersComparerBase
 	{
 		for (var i = 0; i < xParameters.Count && i < yParameters.Count; i++)
 		{
-			var comparison = StringComparer.Ordinal.Compare(xParameters[i].Type?.ToString(), yParameters[i].Type?.ToString());
-			if (comparison != 0)
+			if (TypeOrder != IdentifierOrder.Default)
 			{
-				return comparison;
+				var comparison = StringComparer.Ordinal.Compare(xParameters[i].Type?.ToString(), yParameters[i].Type?.ToString());
+				if (comparison != 0)
+				{
+					return TypeOrder == IdentifierOrder.Alphabetical ? comparison : -comparison;
+				}
 			}
 			var xRef = xParameters[i].Modifiers.Any(SyntaxKind.RefKeyword);
 			var yRef = yParameters[i].Modifiers.Any(SyntaxKind.RefKeyword);

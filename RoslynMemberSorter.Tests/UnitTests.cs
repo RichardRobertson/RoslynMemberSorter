@@ -36,13 +36,12 @@ public class UnitTests : XunitDiagnosticVerifier<MemberSorterAnalyzer, MemberSor
 				.WithConfigOptions(new Dictionary<string, string>()
 					{
 						[MakePropertyKey(dco => dco.AccessibilityOrder)] = string.Empty,
-						[MakePropertyKey(dco => dco.AlphabeticalIdentifiers)] = MakeEnumValue(NameOrder.Default),
+						[MakePropertyKey(dco => dco.AlphabeticalIdentifiers)] = MakeEnumValue(IdentifierOrder.Default),
 						[MakePropertyKey(dco => dco.ExplicitInterfaceSpecifiers)] = MakeEnumValue(Order.Default),
 						[MakePropertyKey(dco => dco.FieldOrder)] = string.Empty,
 						[MakePropertyKey(dco => dco.KindOrder)] = string.Empty,
 						[MakePropertyKey(dco => dco.ArityOrder)] = MakeEnumValue(ArityOrder.Default),
 						[MakePropertyKey(dco => dco.OperatorOrder)] = string.Empty,
-						[MakePropertyKey(dco => dco.ParameterSortStyle)] = MakeEnumValue(ParameterSortStyle.Default),
 						[MakePropertyKey(dco => dco.MergeEvents)] = MakeEnumValue(false),
 						[MakePropertyKey(dco => dco.SortOrders)] = string.Empty,
 						[MakePropertyKey(dco => dco.Static)] = MakeEnumValue(Order.Default)
@@ -74,112 +73,220 @@ public class UnitTests : XunitDiagnosticVerifier<MemberSorterAnalyzer, MemberSor
 		}
 	}
 
-	private async Task VerifyDiagnosticAndFixAsync(TestCode source, string expectedFix, Dictionary<string, string> config)
+	private async Task VerifyDiagnosticAndFixAsync(TestCode source, DiagnosticDescriptor diagnostic, string expectedFix, Dictionary<string, string> config)
 	{
-		await VerifyDiagnosticAndFixAsync(new DiagnosticTestData(DiagnosticIds.SortMembers, source.Value, source.Spans), new ExpectedTestState(expectedFix), CommonOptions.WithConfigOptions(CommonOptions.ConfigOptions.SetItems(config))).ConfigureAwait(false);
+		await VerifyDiagnosticAndFixAsync(new DiagnosticTestData(diagnostic, source.Value, source.Spans, source.AdditionalSpans), new ExpectedTestState(expectedFix, "Fix this member order"), CommonOptions.WithConfigOptions(CommonOptions.ConfigOptions.SetItems(config))).ConfigureAwait(false);
 	}
 
-	private async Task VerifyNoDiagnosticAsync(TestCode source, Dictionary<string, string> config)
+	private async Task VerifyNoDiagnosticAsync(TestCode source, DiagnosticDescriptor diagnostic, Dictionary<string, string> config)
 	{
-		await VerifyNoDiagnosticAsync(new DiagnosticTestData(DiagnosticIds.SortMembers, source.Value, source.Spans), CommonOptions.WithConfigOptions(CommonOptions.ConfigOptions.SetItems(config))).ConfigureAwait(false);
+		await VerifyNoDiagnosticAsync(new DiagnosticTestData(diagnostic, source.Value, source.Spans, source.AdditionalSpans), CommonOptions.WithConfigOptions(CommonOptions.ConfigOptions.SetItems(config))).ConfigureAwait(false);
 	}
 
 	[Fact]
-	public async Task TestAccessibilityOrderAsync()
+	public async Task Accessibility_EmptyOrder_NoDiagnostic_Async()
 	{
-		var source = TestCode.Parse("class [|test|]\r\n{\r\n    private int B;\r\n    public int A;\r\n}\r\n");
+		var source = TestCode.Parse("class test\r\n{\r\n    private int B;\r\n    public int A;\r\n}\r\n");
 		var config = new Dictionary<string, string>()
 		{
 			[MakePropertyKey(dco => dco.AccessibilityOrder)] = string.Empty,
 			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Accessibility)
 		};
 
-		// default sort means do not reorder, verify no diagnostic
-		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
-
-		// verify order applies
-		config[MakePropertyKey(dco => dco.AccessibilityOrder)] = MakeEnumList(Accessibility.Public, Accessibility.Private);
-		const string expectedFix = "class test\r\n{\r\n    public int A;\r\n    private int B;\r\n}\r\n";
-		await VerifyDiagnosticAndFixAsync(source, expectedFix, config).ConfigureAwait(false);
-
-		// already in order, verify no diagnostic
-		config[MakePropertyKey(dco => dco.AccessibilityOrder)] = MakeEnumList(Accessibility.Private, Accessibility.Public);
-		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
+		await VerifyNoDiagnosticAsync(source, DiagnosticIds.AccessibilityOutOfOrder, config).ConfigureAwait(false);
 	}
 
 	[Fact]
-	public async Task TestAlphabeticalIdentifiersAsync()
+	public async Task Accessibility_InOrder_NoDiagnostic_Async()
 	{
-		var source = TestCode.Parse("class [|test|]\r\n{\r\n    int B;\r\n    int A;\r\n}\r\n");
+		var source = TestCode.Parse("class test\r\n{\r\n    private int B;\r\n    public int A;\r\n}\r\n");
 		var config = new Dictionary<string, string>()
 		{
-			[MakePropertyKey(dco => dco.AlphabeticalIdentifiers)] = MakeEnumValue(NameOrder.Default),
-			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Identifier)
+			[MakePropertyKey(dco => dco.AccessibilityOrder)] = MakeEnumList(Accessibility.Private, Accessibility.Public),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Accessibility)
 		};
 
-		// default sort means do not reorder, verify no diagnostic
-		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
-
-		// verify order applies
-		config[MakePropertyKey(dco => dco.AlphabeticalIdentifiers)] = MakeEnumValue(NameOrder.Alphabetical);
-		const string expectedFix = "class test\r\n{\r\n    int A;\r\n    int B;\r\n}\r\n";
-		await VerifyDiagnosticAndFixAsync(source, expectedFix, config).ConfigureAwait(false);
-
-		// already in order, verify no diagnostic
-		config[MakePropertyKey(dco => dco.AlphabeticalIdentifiers)] = MakeEnumValue(NameOrder.ReverseAlphabetical);
-		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
+		await VerifyNoDiagnosticAsync(source, DiagnosticIds.AccessibilityOutOfOrder, config).ConfigureAwait(false);
 	}
 
 	[Fact]
-	public async Task TestExplicitInterfaceSpecifiersAsync()
+	public async Task Accessibility_Order_Async()
 	{
-		var source = TestCode.Parse("class [|test|] : System.Collections.IEnumerable\r\n{\r\n    System.Collections.IEnumerator GetEnumerator() => throw new System.NotImplementedException();\r\n    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => throw new System.NotImplementedException();\r\n}\r\n");
+		var source = TestCode.Parse("class test\r\n{\r\n    private int B;\r\n    [|public int A;|]\r\n}\r\n");
+		const string expectedFix = "class test\r\n{\r\n    public int A;\r\n    private int B;\r\n}\r\n";
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.AccessibilityOrder)] = MakeEnumList(Accessibility.Public, Accessibility.Private),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Accessibility)
+		};
+
+		await VerifyDiagnosticAndFixAsync(source, DiagnosticIds.AccessibilityOutOfOrder, expectedFix, config).ConfigureAwait(false);
+	}
+
+	[Fact]
+	public async Task Arity_Default_NoDiagnostic_Async()
+	{
+		var source = TestCode.Parse("class test\r\n{\r\n    int Method(int a, int b) => throw new System.NotImplementedException();\r\n    int Method(int a) => throw new System.NotImplementedException();\r\n}\r\n");
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.ArityOrder)] = MakeEnumValue(ArityOrder.Default),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.ParameterArity)
+		};
+
+		await VerifyNoDiagnosticAsync(source, DiagnosticIds.ParameterArityOutOfOrder, config).ConfigureAwait(false);
+	}
+
+	[Fact]
+	public async Task Arity_HighToLow_NoDiagnostic_Async()
+	{
+		var source = TestCode.Parse("class test\r\n{\r\n    int Method(int a, int b) => throw new System.NotImplementedException();\r\n    int Method(int a) => throw new System.NotImplementedException();\r\n}\r\n");
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.ArityOrder)] = MakeEnumValue(ArityOrder.HighToLow),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.ParameterArity)
+		};
+
+		await VerifyNoDiagnosticAsync(source, DiagnosticIds.ParameterArityOutOfOrder, config).ConfigureAwait(false);
+	}
+
+	[Fact]
+	public async Task Arity_LowToHigh_Async()
+	{
+		var source = TestCode.Parse("class test\r\n{\r\n    int Method(int a, int b) => throw new System.NotImplementedException();\r\n    [|int Method(int a) => throw new System.NotImplementedException();|]\r\n}\r\n");
+		const string expectedFix = "class test\r\n{\r\n    int Method(int a) => throw new System.NotImplementedException();\r\n    int Method(int a, int b) => throw new System.NotImplementedException();\r\n}\r\n";
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.ArityOrder)] = MakeEnumValue(ArityOrder.LowToHigh),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.ParameterArity)
+		};
+
+		await VerifyDiagnosticAndFixAsync(source, DiagnosticIds.ParameterArityOutOfOrder, expectedFix, config).ConfigureAwait(false);
+	}
+
+	[Fact]
+	public async Task ExplicitInterfaceSpecifiers_Default_NoDiagnostic_Async()
+	{
+		var source = TestCode.Parse("class test : System.Collections.IEnumerable\r\n{\r\n    System.Collections.IEnumerator GetEnumerator() => throw new System.NotImplementedException();\r\n    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => throw new System.NotImplementedException();\r\n}\r\n");
 		var config = new Dictionary<string, string>()
 		{
 			[MakePropertyKey(dco => dco.ExplicitInterfaceSpecifiers)] = MakeEnumValue(Order.Default),
 			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.ExplicitInterfaceSpecifier)
 		};
 
-		// default sort means do not reorder, verify no diagnostic
-		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
-
-		// verify order applies
-		config[MakePropertyKey(dco => dco.ExplicitInterfaceSpecifiers)] = MakeEnumValue(Order.First);
-		const string expectedFix = "class test : System.Collections.IEnumerable\r\n{\r\n    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => throw new System.NotImplementedException();\r\n    System.Collections.IEnumerator GetEnumerator() => throw new System.NotImplementedException();\r\n}\r\n";
-		await VerifyDiagnosticAndFixAsync(source, expectedFix, config).ConfigureAwait(false);
-
-		// already in order, verify no diagnostic
-		config[MakePropertyKey(dco => dco.ExplicitInterfaceSpecifiers)] = MakeEnumValue(Order.Last);
-		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
+		await VerifyNoDiagnosticAsync(source, DiagnosticIds.ExplicitInterfaceSpecifierOutOfOrder, config).ConfigureAwait(false);
 	}
 
 	[Fact]
-	public async Task TestFieldOrderAsync()
+	public async Task ExplicitInterfaceSpecifiers_First_Async()
 	{
-		var source = TestCode.Parse("class [|test|]\r\n{\r\n    int MutableField;\r\n    const int ConstField = 0;\r\n    readonly int ReadOnlyField;\r\n}\r\n");
+		var source = TestCode.Parse("class test : System.Collections.IEnumerable\r\n{\r\n    System.Collections.IEnumerator GetEnumerator() => throw new System.NotImplementedException();\r\n    [|System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => throw new System.NotImplementedException();|]\r\n}\r\n");
+		const string expectedFix = "class test : System.Collections.IEnumerable\r\n{\r\n    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => throw new System.NotImplementedException();\r\n    System.Collections.IEnumerator GetEnumerator() => throw new System.NotImplementedException();\r\n}\r\n";
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.ExplicitInterfaceSpecifiers)] = MakeEnumValue(Order.First),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.ExplicitInterfaceSpecifier)
+		};
+
+		await VerifyDiagnosticAndFixAsync(source, DiagnosticIds.ExplicitInterfaceSpecifierOutOfOrder, expectedFix, config).ConfigureAwait(false);
+	}
+
+	[Fact]
+	public async Task ExplicitInterfaceSpecifiers_Last_NoDiagnostic_Async()
+	{
+		var source = TestCode.Parse("class test : System.Collections.IEnumerable\r\n{\r\n    System.Collections.IEnumerator GetEnumerator() => throw new System.NotImplementedException();\r\n    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => throw new System.NotImplementedException();\r\n}\r\n");
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.ExplicitInterfaceSpecifiers)] = MakeEnumValue(Order.Last),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.ExplicitInterfaceSpecifier)
+		};
+
+		await VerifyNoDiagnosticAsync(source, DiagnosticIds.ExplicitInterfaceSpecifierOutOfOrder, config).ConfigureAwait(false);
+	}
+
+	[Fact]
+	public async Task Field_EmptyOrder_NoDiagnostic_Async()
+	{
+		var source = TestCode.Parse("class test\r\n{\r\n    int MutableField;\r\n    const int ConstField = 0;\r\n    readonly int ReadOnlyField;\r\n}\r\n");
 		var config = new Dictionary<string, string>()
 		{
 			[MakePropertyKey(dco => dco.FieldOrder)] = string.Empty,
 			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.FieldOrder)
 		};
 
-		// default sort means do not reorder, verify no diagnostic
-		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
-
-		// verify order applies
-		config[MakePropertyKey(dco => dco.FieldOrder)] = MakeEnumList(FieldMutability.Const, FieldMutability.ReadOnly, FieldMutability.Mutable);
-		const string expectedFix = "class test\r\n{\r\n    const int ConstField = 0;\r\n    readonly int ReadOnlyField;\r\n    int MutableField;\r\n}\r\n";
-		await VerifyDiagnosticAndFixAsync(source, expectedFix, config).ConfigureAwait(false);
-
-		// already in order, verify no diagnostic
-		config[MakePropertyKey(dco => dco.FieldOrder)] = MakeEnumList(FieldMutability.Mutable, FieldMutability.Const, FieldMutability.ReadOnly);
-		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
+		await VerifyNoDiagnosticAsync(source, DiagnosticIds.FieldOutOfOrder, config).ConfigureAwait(false);
 	}
 
 	[Fact]
-	public async Task TestKindOrderAsync()
+	public async Task Field_InOrder_NoDiagnostic_Async()
 	{
-		var source = TestCode.Parse("class [|test|]\r\n{\r\n    int Field;\r\n    int Property\r\n     {\r\n        get;\r\n    }\r\n}\r\n");
+		var source = TestCode.Parse("class test\r\n{\r\n    int MutableField;\r\n    const int ConstField = 0;\r\n    readonly int ReadOnlyField;\r\n}\r\n");
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.FieldOrder)] = MakeEnumList(FieldMutability.Mutable, FieldMutability.Const, FieldMutability.ReadOnly),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.FieldOrder)
+		};
+
+		await VerifyNoDiagnosticAsync(source, DiagnosticIds.FieldOutOfOrder, config).ConfigureAwait(false);
+	}
+
+	[Fact]
+	public async Task Field_Order_Async()
+	{
+		var source = TestCode.Parse("class test\r\n{\r\n    int MutableField;\r\n    [|const int ConstField = 0;|]\r\n    readonly int ReadOnlyField;\r\n}\r\n");
+		const string expectedFix = "class test\r\n{\r\n    const int ConstField = 0;\r\n    readonly int ReadOnlyField;\r\n    int MutableField;\r\n}\r\n";
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.FieldOrder)] = MakeEnumList(FieldMutability.Const, FieldMutability.ReadOnly, FieldMutability.Mutable),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.FieldOrder)
+		};
+
+		await VerifyDiagnosticAndFixAsync(source, DiagnosticIds.FieldOutOfOrder, expectedFix, config).ConfigureAwait(false);
+	}
+
+	[Fact]
+	public async Task Identifier_Alphabetical_Async()
+	{
+		var source = TestCode.Parse("class test\r\n{\r\n    int B;\r\n    [|int A;|]\r\n}\r\n");
+		const string expectedFix = "class test\r\n{\r\n    int A;\r\n    int B;\r\n}\r\n";
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.AlphabeticalIdentifiers)] = MakeEnumValue(IdentifierOrder.Alphabetical),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Identifier)
+		};
+
+		await VerifyDiagnosticAndFixAsync(source, DiagnosticIds.IdentifierOutOfOrder, expectedFix, config).ConfigureAwait(false);
+	}
+
+	[Fact]
+	public async Task Identifier_Default_NoDiagnostic_Async()
+	{
+		var source = TestCode.Parse("class test\r\n{\r\n    int B;\r\n    int A;\r\n}\r\n");
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.AlphabeticalIdentifiers)] = MakeEnumValue(IdentifierOrder.Default),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Identifier)
+		};
+
+		await VerifyNoDiagnosticAsync(source, DiagnosticIds.IdentifierOutOfOrder, config).ConfigureAwait(false);
+	}
+
+	[Fact]
+	public async Task Identifier_ReverseAlphabetical_NoDiagnostic_Async()
+	{
+		var source = TestCode.Parse("class test\r\n{\r\n    int B;\r\n    int A;\r\n}\r\n");
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.AlphabeticalIdentifiers)] = MakeEnumValue(IdentifierOrder.ReverseAlphabetical),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Identifier)
+		};
+
+		await VerifyNoDiagnosticAsync(source, DiagnosticIds.IdentifierOutOfOrder, config).ConfigureAwait(false);
+	}
+
+	[Fact]
+	public async Task Kind_EmptyOrder_NoDiagnostic_Async()
+	{
+		var source = TestCode.Parse("class test\r\n{\r\n    int Field;\r\n    int Property\r\n     {\r\n        get;\r\n    }\r\n}\r\n");
 		var config = new Dictionary<string, string>()
 		{
 			[MakePropertyKey(dco => dco.KindOrder)] = string.Empty,
@@ -187,45 +294,55 @@ public class UnitTests : XunitDiagnosticVerifier<MemberSorterAnalyzer, MemberSor
 		};
 
 		// default sort order means do not reorder, verify no diagnostic
-		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
-
-		// verify order applies
-		config[MakePropertyKey(dco => dco.KindOrder)] = MakeEnumList(SyntaxKind.PropertyDeclaration, SyntaxKind.FieldDeclaration);
-		const string expectedFix = "class test\r\n{\r\n    int Property\r\n    {\r\n        get;\r\n    }\r\n    int Field;\r\n}\r\n";
-		await VerifyDiagnosticAndFixAsync(source, expectedFix, config).ConfigureAwait(false);
-
-		// already in order, verify no diagnostic
-		config[MakePropertyKey(dco => dco.KindOrder)] = MakeEnumList(SyntaxKind.FieldDeclaration, SyntaxKind.PropertyDeclaration);
-		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
+		await VerifyNoDiagnosticAsync(source, DiagnosticIds.KindOutOfOrder, config).ConfigureAwait(false);
 	}
 
 	[Fact]
-	public async Task TestLowArityAsync()
+	public async Task Kind_InOrder_NoDiagnostic_Async()
 	{
-		var source = TestCode.Parse("class [|test|]\r\n{\r\n    int Method(int a, int b) => throw new System.NotImplementedException();\r\n    int Method(int a) => throw new System.NotImplementedException();\r\n}\r\n");
+		var source = TestCode.Parse("class test\r\n{\r\n    int Field;\r\n    int Property\r\n     {\r\n        get;\r\n    }\r\n}\r\n");
 		var config = new Dictionary<string, string>()
 		{
-			[MakePropertyKey(dco => dco.ArityOrder)] = MakeEnumValue(ArityOrder.Default),
-			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Parameters)
+			[MakePropertyKey(dco => dco.KindOrder)] = MakeEnumList(SyntaxKind.FieldDeclaration, SyntaxKind.PropertyDeclaration),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Kind)
 		};
 
-		// default sort order means do not reorder, verify no diagnostic
-		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
-
-		// verify order applies
-		config[MakePropertyKey(dco => dco.ArityOrder)] = MakeEnumValue(ArityOrder.LowToHigh);
-		const string expectedFix = "class test\r\n{\r\n    int Method(int a) => throw new System.NotImplementedException();\r\n    int Method(int a, int b) => throw new System.NotImplementedException();\r\n}\r\n";
-		await VerifyDiagnosticAndFixAsync(source, expectedFix, config).ConfigureAwait(false);
-
-		// already in order, verify no diagnostic
-		config[MakePropertyKey(dco => dco.ArityOrder)] = MakeEnumValue(ArityOrder.HighToLow);
-		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
+		await VerifyNoDiagnosticAsync(source, DiagnosticIds.KindOutOfOrder, config).ConfigureAwait(false);
 	}
 
 	[Fact]
-	public async Task TestMergeEventsAsync()
+	public async Task Kind_Order_Async()
 	{
-		var source = TestCode.Parse("class [|test|]\r\n{\r\n    event System.EventHandler MultiLine\r\n    {\r\n        add => throw new System.NotImplementedException();\r\n        remove => throw new System.NotImplementedException();\r\n    }\r\n    event System.EventHandler SingleLine;\r\n}\r\n");
+		var source = TestCode.Parse("class test\r\n{\r\n    int Field;\r\n    [|int Property\r\n     {\r\n        get;\r\n    }|]\r\n}\r\n");
+		const string expectedFix = "class test\r\n{\r\n    int Property\r\n    {\r\n        get;\r\n    }\r\n    int Field;\r\n}\r\n";
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.KindOrder)] = MakeEnumList(SyntaxKind.PropertyDeclaration, SyntaxKind.FieldDeclaration),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Kind)
+		};
+
+		await VerifyDiagnosticAndFixAsync(source, DiagnosticIds.KindOutOfOrder, expectedFix, config).ConfigureAwait(false);
+	}
+
+	[Fact]
+	public async Task MergeEvents_False_InOrder_NoDiagnostic_Async()
+	{
+		var source = TestCode.Parse("class test\r\n{\r\n    event System.EventHandler MultiLine\r\n    {\r\n        add => throw new System.NotImplementedException();\r\n        remove => throw new System.NotImplementedException();\r\n    }\r\n    event System.EventHandler SingleLine;\r\n}\r\n");
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.KindOrder)] = MakeEnumList(SyntaxKind.EventDeclaration, SyntaxKind.EventFieldDeclaration),
+			[MakePropertyKey(dco => dco.MergeEvents)] = MakeEnumValue(false),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Kind)
+		};
+
+		await VerifyNoDiagnosticAsync(source, DiagnosticIds.KindOutOfOrder, config).ConfigureAwait(false);
+	}
+
+	[Fact]
+	public async Task MergeEvents_False_Order_Async()
+	{
+		var source = TestCode.Parse("class test\r\n{\r\n    event System.EventHandler MultiLine\r\n    {\r\n        add => throw new System.NotImplementedException();\r\n        remove => throw new System.NotImplementedException();\r\n    }\r\n    [|event System.EventHandler SingleLine;|]\r\n}\r\n");
+		const string expectedFix = "class test\r\n{\r\n    event System.EventHandler SingleLine;\r\n    event System.EventHandler MultiLine\r\n    {\r\n        add => throw new System.NotImplementedException();\r\n        remove => throw new System.NotImplementedException();\r\n    }\r\n}\r\n";
 		var config = new Dictionary<string, string>()
 		{
 			[MakePropertyKey(dco => dco.KindOrder)] = MakeEnumList(SyntaxKind.EventFieldDeclaration, SyntaxKind.EventDeclaration),
@@ -233,66 +350,121 @@ public class UnitTests : XunitDiagnosticVerifier<MemberSorterAnalyzer, MemberSor
 			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Kind)
 		};
 
-		// verify order applies
-		const string expectedFix = "class test\r\n{\r\n    event System.EventHandler SingleLine;\r\n    event System.EventHandler MultiLine\r\n    {\r\n        add => throw new System.NotImplementedException();\r\n        remove => throw new System.NotImplementedException();\r\n    }\r\n}\r\n";
-		await VerifyDiagnosticAndFixAsync(source, expectedFix, config).ConfigureAwait(false);
-
-		// already in order, verify no diagnostic
-		config[MakePropertyKey(dco => dco.MergeEvents)] = MakeEnumValue(true);
-		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
+		await VerifyDiagnosticAndFixAsync(source, DiagnosticIds.KindOutOfOrder, expectedFix, config).ConfigureAwait(false);
 	}
 
 	[Fact]
-	public async Task TestOperatorOrderAsync()
+	public async Task MergeEvents_True_NoDiagnostic_Async()
 	{
-		var source = TestCode.Parse("class [|test|]\r\n{\r\n    public static test operator -(test a, test b) => throw new System.NotImplementedException();\r\n    public static test operator +(test a, test b) => throw new System.NotImplementedException();\r\n}\r\n");
+		var source = TestCode.Parse("class test\r\n{\r\n    event System.EventHandler MultiLine\r\n    {\r\n        add => throw new System.NotImplementedException();\r\n        remove => throw new System.NotImplementedException();\r\n    }\r\n    event System.EventHandler SingleLine;\r\n}\r\n");
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.KindOrder)] = MakeEnumList(SyntaxKind.EventFieldDeclaration, SyntaxKind.EventDeclaration),
+			[MakePropertyKey(dco => dco.MergeEvents)] = MakeEnumValue(true),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Kind)
+		};
+
+		await VerifyNoDiagnosticAsync(source, DiagnosticIds.KindOutOfOrder, config).ConfigureAwait(false);
+	}
+
+	[Fact]
+	public async Task Operator_EmptyOrder_NoDiagnostic_Async()
+	{
+		var source = TestCode.Parse("class test\r\n{\r\n    public static test operator -(test a, test b) => throw new System.NotImplementedException();\r\n    public static test operator +(test a, test b) => throw new System.NotImplementedException();\r\n}\r\n");
 		var config = new Dictionary<string, string>()
 		{
 			[MakePropertyKey(dco => dco.OperatorOrder)] = string.Empty,
 			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Identifier)
 		};
 
-		// default sort order means do not reorder, verify no diagnostic
-		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
-
-		// verify order applies
-		config[MakePropertyKey(dco => dco.OperatorOrder)] = MakeEnumList(SyntaxKind.PlusToken, SyntaxKind.MinusToken);
-		const string expectedFix = "class test\r\n{\r\n    public static test operator +(test a, test b) => throw new System.NotImplementedException();\r\n    public static test operator -(test a, test b) => throw new System.NotImplementedException();\r\n}\r\n";
-		await VerifyDiagnosticAndFixAsync(source, expectedFix, config).ConfigureAwait(false);
-
-		// already in order, verify no diagnostic
-		config[MakePropertyKey(dco => dco.OperatorOrder)] = MakeEnumList(SyntaxKind.MinusToken, SyntaxKind.PlusToken);
-		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
+		await VerifyNoDiagnosticAsync(source, DiagnosticIds.IdentifierOutOfOrder, config).ConfigureAwait(false);
 	}
 
 	[Fact]
-	public async Task TestParameterSortStyleAsync()
+	public async Task Operator_InOrder_NoDiagnostic_Async()
 	{
-		var source = TestCode.Parse("class [|test|]\r\n{\r\n    void Method(int c) => throw new System.NotImplementedException();\r\n    void Method(string a) => throw new System.NotImplementedException();\r\n    void Method(double b) => throw new System.NotImplementedException();\r\n}\r\n");
+		var source = TestCode.Parse("class test\r\n{\r\n    public static test operator -(test a, test b) => throw new System.NotImplementedException();\r\n    public static test operator +(test a, test b) => throw new System.NotImplementedException();\r\n}\r\n");
 		var config = new Dictionary<string, string>()
 		{
-			[MakePropertyKey(dco => dco.ParameterSortStyle)] = MakeEnumValue(ParameterSortStyle.Default),
-			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Parameters)
+			[MakePropertyKey(dco => dco.OperatorOrder)] = MakeEnumList(SyntaxKind.MinusToken, SyntaxKind.PlusToken),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Identifier)
 		};
 
-		// default sort order means do not reorder, verify no diagnostic
-		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
-
-		// verify order applies
-		config[MakePropertyKey(dco => dco.ParameterSortStyle)] = MakeEnumValue(ParameterSortStyle.SortTypes);
-		const string expectedTypesFix = "class test\r\n{\r\n    void Method(double b) => throw new System.NotImplementedException();\r\n    void Method(int c) => throw new System.NotImplementedException();\r\n    void Method(string a) => throw new System.NotImplementedException();\r\n}\r\n";
-		await VerifyDiagnosticAndFixAsync(source, expectedTypesFix, config).ConfigureAwait(false);
-
-		// verify order applies
-		config[MakePropertyKey(dco => dco.ParameterSortStyle)] = MakeEnumValue(ParameterSortStyle.SortNames);
-		const string expectedNamesFix = "class test\r\n{\r\n    void Method(string a) => throw new System.NotImplementedException();\r\n    void Method(double b) => throw new System.NotImplementedException();\r\n    void Method(int c) => throw new System.NotImplementedException();\r\n}\r\n";
-		await VerifyDiagnosticAndFixAsync(source, expectedNamesFix, config).ConfigureAwait(false);
+		await VerifyNoDiagnosticAsync(source, DiagnosticIds.IdentifierOutOfOrder, config).ConfigureAwait(false);
 	}
 
 	[Fact]
-	public async Task TestSortOrdersAsync()
+	public async Task Operator_Order_Async()
 	{
-		var source = TestCode.Parse("class [|test|]\r\n{\r\n    public int PublicInstance;\r\n    private static int PrivateStatic;\r\n    private int PrivateInstance;\r\n    public static int PublicStatic;\r\n}\r\n");
+		var source = TestCode.Parse("class test\r\n{\r\n    public static test operator -(test a, test b) => throw new System.NotImplementedException();\r\n    [|public static test operator +(test a, test b) => throw new System.NotImplementedException();|]\r\n}\r\n");
+		const string expectedFix = "class test\r\n{\r\n    public static test operator +(test a, test b) => throw new System.NotImplementedException();\r\n    public static test operator -(test a, test b) => throw new System.NotImplementedException();\r\n}\r\n";
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.OperatorOrder)] = MakeEnumList(SyntaxKind.PlusToken, SyntaxKind.MinusToken),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Identifier)
+		};
+
+		await VerifyDiagnosticAndFixAsync(source, DiagnosticIds.IdentifierOutOfOrder, expectedFix, config).ConfigureAwait(false);
+	}
+
+	[Fact]
+	public async Task ParameterName_Alphabetical_Async()
+	{
+		var source = TestCode.Parse("class test\r\n{\r\n    void Method(int c) => throw new System.NotImplementedException();\r\n    [|void Method(string a) => throw new System.NotImplementedException();|]\r\n    void Method(double b) => throw new System.NotImplementedException();\r\n}\r\n");
+		const string expectedFix = "class test\r\n{\r\n    void Method(string a) => throw new System.NotImplementedException();\r\n    void Method(double b) => throw new System.NotImplementedException();\r\n    void Method(int c) => throw new System.NotImplementedException();\r\n}\r\n";
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.AlphabeticalIdentifiers)] = MakeEnumValue(IdentifierOrder.Alphabetical),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.ParameterNames)
+		};
+
+		await VerifyDiagnosticAndFixAsync(source, DiagnosticIds.ParameterNameOutOfOrder, expectedFix, config).ConfigureAwait(false);
+	}
+
+	[Fact]
+	public async Task ParameterName_Default_NoDiagnostic_Async()
+	{
+		var source = TestCode.Parse("class test\r\n{\r\n    void Method(int c) => throw new System.NotImplementedException();\r\n    void Method(string a) => throw new System.NotImplementedException();\r\n    void Method(double b) => throw new System.NotImplementedException();\r\n}\r\n");
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.AlphabeticalIdentifiers)] = MakeEnumValue(IdentifierOrder.Default),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.ParameterNames)
+		};
+
+		await VerifyNoDiagnosticAsync(source, DiagnosticIds.ParameterNameOutOfOrder, config).ConfigureAwait(false);
+	}
+
+	[Fact]
+	public async Task ParameterType_Alphabetical_Async()
+	{
+		var source = TestCode.Parse("class test\r\n{\r\n    void Method(int c) => throw new System.NotImplementedException();\r\n    void Method(string a) => throw new System.NotImplementedException();\r\n    [|void Method(double b) => throw new System.NotImplementedException();|]\r\n}\r\n");
+		const string expectedFix = "class test\r\n{\r\n    void Method(double b) => throw new System.NotImplementedException();\r\n    void Method(int c) => throw new System.NotImplementedException();\r\n    void Method(string a) => throw new System.NotImplementedException();\r\n}\r\n";
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.AlphabeticalIdentifiers)] = MakeEnumValue(IdentifierOrder.Alphabetical),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.ParameterTypes)
+		};
+
+		await VerifyDiagnosticAndFixAsync(source, DiagnosticIds.ParameterTypeOutOfOrder, expectedFix, config).ConfigureAwait(false);
+	}
+
+	[Fact]
+	public async Task ParameterType_Default_NoDiagnostic_Async()
+	{
+		var source = TestCode.Parse("class test\r\n{\r\n    void Method(int c) => throw new System.NotImplementedException();\r\n    void Method(string a) => throw new System.NotImplementedException();\r\n    void Method(double b) => throw new System.NotImplementedException();\r\n}\r\n");
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.AlphabeticalIdentifiers)] = MakeEnumValue(IdentifierOrder.Default),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.ParameterTypes)
+		};
+
+		await VerifyNoDiagnosticAsync(source, DiagnosticIds.ParameterTypeOutOfOrder, config).ConfigureAwait(false);
+	}
+
+	[Fact]
+	public async Task Sort_EmptyOrder_NoDiagnostic_Async()
+	{
+		var source = TestCode.Parse("class test\r\n{\r\n    public int PublicInstance;\r\n    private static int PrivateStatic;\r\n    private int PrivateInstance;\r\n    public static int PublicStatic;\r\n}\r\n");
 		var config = new Dictionary<string, string>()
 		{
 			[MakePropertyKey(dco => dco.AccessibilityOrder)] = MakeEnumList(Accessibility.Public, Accessibility.Private),
@@ -300,40 +472,76 @@ public class UnitTests : XunitDiagnosticVerifier<MemberSorterAnalyzer, MemberSor
 			[MakePropertyKey(dco => dco.Static)] = MakeEnumValue(Order.First)
 		};
 
-		// default sort order means do not reorder, verify no diagnostic
-		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
-
-		// verify order applies
-		config[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumList(SortOrder.Accessibility, SortOrder.Static);
-		const string expectedTypesFix = "class test\r\n{\r\n    public static int PublicStatic;\r\n    public int PublicInstance;\r\n    private static int PrivateStatic;\r\n    private int PrivateInstance;\r\n}\r\n";
-		await VerifyDiagnosticAndFixAsync(source, expectedTypesFix, config).ConfigureAwait(false);
-
-		// verify order applies
-		config[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumList(SortOrder.Static, SortOrder.Accessibility);
-		const string expectedNamesFix = "class test\r\n{\r\n    public static int PublicStatic;\r\n    private static int PrivateStatic;\r\n    public int PublicInstance;\r\n    private int PrivateInstance;\r\n}\r\n";
-		await VerifyDiagnosticAndFixAsync(source, expectedNamesFix, config).ConfigureAwait(false);
+		await VerifyNoDiagnosticAsync(source, DiagnosticIds.AccessibilityOutOfOrder, config).ConfigureAwait(false);
 	}
 
 	[Fact]
-	public async Task TestStaticAsync()
+	public async Task Sort_Order_AccessibilityStatic_Async()
 	{
-		var source = TestCode.Parse("class [|test|]\r\n{\r\n    int Instance;\r\n    static int Static;\r\n}\r\n");
+		var source = TestCode.Parse("class test\r\n{\r\n    public int PublicInstance;\r\n    private static int PrivateStatic;\r\n    private int PrivateInstance;\r\n    [|public static int PublicStatic;|]\r\n}\r\n");
+		const string expectedFix = "class test\r\n{\r\n    public static int PublicStatic;\r\n    public int PublicInstance;\r\n    private static int PrivateStatic;\r\n    private int PrivateInstance;\r\n}\r\n";
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.AccessibilityOrder)] = MakeEnumList(Accessibility.Public, Accessibility.Private),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumList(SortOrder.Accessibility, SortOrder.Static),
+			[MakePropertyKey(dco => dco.Static)] = MakeEnumValue(Order.First)
+		};
+
+		await VerifyDiagnosticAndFixAsync(source, DiagnosticIds.AccessibilityOutOfOrder, expectedFix, config).ConfigureAwait(false);
+	}
+
+	[Fact]
+	public async Task Sort_Order_StaticAccessibility_Async()
+	{
+		var source = TestCode.Parse("class test\r\n{\r\n    public int PublicInstance;\r\n    [|private static int PrivateStatic;|]\r\n    private int PrivateInstance;\r\n    [|public static int PublicStatic;|]\r\n}\r\n");
+		const string expectedFix = "class test\r\n{\r\n    public static int PublicStatic;\r\n    private static int PrivateStatic;\r\n    public int PublicInstance;\r\n    private int PrivateInstance;\r\n}\r\n";
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.AccessibilityOrder)] = MakeEnumList(Accessibility.Public, Accessibility.Private),
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumList(SortOrder.Static, SortOrder.Accessibility),
+			[MakePropertyKey(dco => dco.Static)] = MakeEnumValue(Order.First)
+		};
+
+		await VerifyDiagnosticAndFixAsync(source, DiagnosticIds.StaticOutOfOrder, expectedFix, config).ConfigureAwait(false);
+	}
+
+	[Fact]
+	public async Task Static_Default_NoDiagnostic_Async()
+	{
+		var source = TestCode.Parse("class test\r\n{\r\n    int Instance;\r\n    static int Static;\r\n}\r\n");
 		var config = new Dictionary<string, string>()
 		{
 			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Static),
 			[MakePropertyKey(dco => dco.Static)] = MakeEnumValue(Order.Default)
 		};
 
-		// default sort means do not reorder, verify no diagnostic
-		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
+		await VerifyNoDiagnosticAsync(source, DiagnosticIds.StaticOutOfOrder, config).ConfigureAwait(false);
+	}
 
-		// verify order applies
-		config[MakePropertyKey(dco => dco.Static)] = MakeEnumValue(Order.First);
+	[Fact]
+	public async Task Static_First_Async()
+	{
+		var source = TestCode.Parse("class test\r\n{\r\n    int Instance;\r\n    [|static int Static;|]\r\n}\r\n");
 		const string expectedFix = "class test\r\n{\r\n    static int Static;\r\n    int Instance;\r\n}\r\n";
-		await VerifyDiagnosticAndFixAsync(source, expectedFix, config).ConfigureAwait(false);
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Static),
+			[MakePropertyKey(dco => dco.Static)] = MakeEnumValue(Order.First)
+		};
 
-		// already in order, verify no diagnostic
-		config[MakePropertyKey(dco => dco.Static)] = MakeEnumValue(Order.Last);
-		await VerifyNoDiagnosticAsync(source, config).ConfigureAwait(false);
+		await VerifyDiagnosticAndFixAsync(source, DiagnosticIds.StaticOutOfOrder, expectedFix, config).ConfigureAwait(false);
+	}
+
+	[Fact]
+	public async Task Static_Last_NoDiagnostic_Async()
+	{
+		var source = TestCode.Parse("class test\r\n{\r\n    int Instance;\r\n    static int Static;\r\n}\r\n");
+		var config = new Dictionary<string, string>()
+		{
+			[MakePropertyKey(dco => dco.SortOrders)] = MakeEnumValue(SortOrder.Static),
+			[MakePropertyKey(dco => dco.Static)] = MakeEnumValue(Order.Last)
+		};
+
+		await VerifyNoDiagnosticAsync(source, DiagnosticIds.StaticOutOfOrder, config).ConfigureAwait(false);
 	}
 }
