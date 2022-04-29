@@ -48,6 +48,17 @@
 				"liquid.md"
 			],
 			"problemMatcher": []
+		},
+		{
+			"label": "coverage",
+			"command": "dotnet",
+			"type": "process",
+			"args":
+			[
+				"test",
+				"--collect:\"XPlat Code Coverage\""
+			],
+			"problemMatcher": []
 		}
 	]
 }
