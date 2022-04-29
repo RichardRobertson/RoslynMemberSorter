@@ -303,7 +303,7 @@ public sealed class DeclarationComparerOptions
 				nameof(Static) => "dotnet_diagnostic.rms0003.",
 				nameof(UnknownAccessibilityOrder) => "dotnet_diagnostic.rms0005.",
 				nameof(UnknownFieldMutabilityOrder) => "dotnet_diagnostic.rms0004.",
-				nameof(UnknownKindOrder) => "dotnet_diagnostic.rms0001.",
+				nameof(UnknownKindOrder) => "dotnet_diagnostic.rms0002.",
 				nameof(UnknownOperatorTokenOrder) => "dotnet_diagnostic.rms0007.",
 #pragma warning disable RCS1079, RCS1140
 				_ => throw new NotImplementedException($"Property {property.Name} prefix not assigned.")

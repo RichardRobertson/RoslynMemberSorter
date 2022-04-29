@@ -84,7 +84,7 @@ public class UnitTests : XunitDiagnosticVerifier<MemberSorterAnalyzer, FixOneCod
 				nameof(DeclarationComparerOptions.Static) => "dotnet_diagnostic.rms0003.",
 				nameof(DeclarationComparerOptions.UnknownAccessibilityOrder) => "dotnet_diagnostic.rms0005.",
 				nameof(DeclarationComparerOptions.UnknownFieldMutabilityOrder) => "dotnet_diagnostic.rms0004.",
-				nameof(DeclarationComparerOptions.UnknownKindOrder) => "dotnet_diagnostic.rms0001.",
+				nameof(DeclarationComparerOptions.UnknownKindOrder) => "dotnet_diagnostic.rms0002.",
 				nameof(DeclarationComparerOptions.UnknownOperatorTokenOrder) => "dotnet_diagnostic.rms0007.",
 #pragma warning disable RCS1079, RCS1140
 				_ => throw new NotImplementedException($"Property {property.Name} prefix not assigned.")
