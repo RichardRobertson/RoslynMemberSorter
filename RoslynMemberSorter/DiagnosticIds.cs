@@ -12,6 +12,56 @@ namespace RoslynMemberSorter;
 public static class DiagnosticIds
 {
 	/// <summary>
+	/// String prefix for configuration options related to accessibility sorting.
+	/// </summary>
+	public const string AccessibilityPrefix = "dotnet_diagnostic.rms0005.";
+
+	/// <summary>
+	/// String prefix for configuration options related to parameter arity sorting.
+	/// </summary>
+	public const string ArityPrefix = "dotnet_diagnostic.rms0008.";
+
+	/// <summary>
+	/// String prefix for configuration options related to explicit interface specifier sorting.
+	/// </summary>
+	public const string ExplicitInterfacePrefix = "dotnet_diagnostic.rms0006.";
+
+	/// <summary>
+	/// String prefix for configuration options related to field sorting.
+	/// </summary>
+	public const string FieldPrefix = "dotnet_diagnostic.rms0004.";
+
+	/// <summary>
+	/// String prefix for configuration options related to identifier sorting.
+	/// </summary>
+	public const string IdentifierPrefix = "dotnet_diagnostic.rms0007.";
+
+	/// <summary>
+	/// String prefix for configuration options related to kind sorting.
+	/// </summary>
+	public const string KindPrefix = "dotnet_diagnostic.rms0002.";
+
+	/// <summary>
+	/// String prefix for configuration options related to parameter name sorting.
+	/// </summary>
+	public const string ParameterNamePrefix = "dotnet_diagnostic.rms0010.";
+
+	/// <summary>
+	/// String prefix for configuration options related to parameter type name sorting.
+	/// </summary>
+	public const string ParameterTypePrefix = "dotnet_diagnostic.rms0009.";
+
+	/// <summary>
+	/// String prefix for shared configuration options related to sorting.
+	/// </summary>
+	public const string SharedPrefix = "dotnet_diagnostic.rms_shared.";
+
+	/// <summary>
+	/// String prefix for configuration options related to static sorting.
+	/// </summary>
+	public const string StaticPrefix = "dotnet_diagnostic.rms0003.";
+
+	/// <summary>
 	/// The diagnostic RMS0001 to sort members of a type or namespace.
 	/// </summary>
 	[Obsolete]
