@@ -7,7 +7,7 @@ RoslynMemberSorter uses Roslyn code analysis to detect out of order namespace an
 Use the dotnet CLI to install RoslynMemberSorter to a project:
 
 ```
-dotnet add package RichardRobertson.RoslynMemberSorter --version 0.1.0-alpha
+dotnet add package RichardRobertson.RoslynMemberSorter --version 0.2.0-alpha
 ```
 
 Or add it to your `.csproj` manually in an `<ItemGroup>`:
@@ -16,7 +16,7 @@ Or add it to your `.csproj` manually in an `<ItemGroup>`:
 <Project Sdk="Microsoft.NET.Sdk">
     <!-- ... -->
     <ItemGroup>
-        <PackageReference Include="RichardRobertson.RoslynMemberSorter" Version="0.1.0-alpha">
+        <PackageReference Include="RichardRobertson.RoslynMemberSorter" Version="0.2.0-alpha">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>analyzers</IncludeAssets>
         <PackageReference>

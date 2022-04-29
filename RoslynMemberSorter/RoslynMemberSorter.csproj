@@ -7,7 +7,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <RootNamespace>RoslynMemberSorter</RootNamespace>
     <PackageId>RichardRobertson.RoslynMemberSorter</PackageId>
-    <Version>0.1.0-alpha</Version>
+    <Version>0.2.0-alpha</Version>
     <Authors>Richard Robertson</Authors>
     <PackageDescription>Uses Roslyn code analysis to detect out of order namespace and type member declarations in C# projects.</PackageDescription>
     <Copyright>Copyright © Richard Robertson 2022</Copyright>
@@ -15,7 +15,7 @@
     <PackageProjectUrl>https://github.com/RichardRobertson/RoslynMemberSorter</PackageProjectUrl>
     <!-- <PackageIcon>Icon.png</PackageIcon> -->
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>https://github.com/RichardRobertson/RoslynMemberSorter/blob/master/CHANGELOG.md#010-alpha-march-25-2022</PackageReleaseNotes>
+    <PackageReleaseNotes>https://github.com/RichardRobertson/RoslynMemberSorter/blob/master/CHANGELOG.md#020-alpha-2022-04-29</PackageReleaseNotes>
     <PackageTags>Roslyn;Analyzer;C#;CSharp;Member;Sorting;Sorter;Sort;Order</PackageTags>
     <RepositoryUrl>https://github.com/RichardRobertson/RoslynMemberSorter.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
