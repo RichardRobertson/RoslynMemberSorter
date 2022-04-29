@@ -15,8 +15,7 @@ namespace RoslynMemberSorter;
 /// <summary>
 /// Provides code fixes for <see cref="MemberSorterAnalyzer" />.
 /// </summary>
-[ExportCodeFixProvider(LanguageNames.CSharp)]
-public sealed class MemberSorterCodeFixProvider : CodeFixProvider
+public abstract class MemberSorterCodeFixProviderBase : CodeFixProvider
 {
 	/// <inheritdoc />
 	public override ImmutableArray<string> FixableDiagnosticIds
@@ -41,14 +40,6 @@ public sealed class MemberSorterCodeFixProvider : CodeFixProvider
 		return WellKnownFixAllProviders.BatchFixer;
 	}
 
-	/// <inheritdoc />
-	public override Task RegisterCodeFixesAsync(CodeFixContext context)
-	{
-		//context.RegisterCodeFix(CodeAction.Create("Fix all member order", cancellationToken => OrderMembersAsync(context, true, cancellationToken), context.Diagnostics[0].Id + ".all"), context.Diagnostics[0]);
-		context.RegisterCodeFix(CodeAction.Create("Fix this member order", cancellationToken => OrderMembersAsync(context, false, cancellationToken), context.Diagnostics[0].Id), context.Diagnostics[0]);
-		return Task.CompletedTask;
-	}
-
 	/// <summary>
 	/// Reorders one or all members.
 	/// </summary>
@@ -56,7 +47,7 @@ public sealed class MemberSorterCodeFixProvider : CodeFixProvider
 	/// <param name="fixAll"><see langword="true" /> to fix all members; otherwise <see langword="false" /> to fix only the member with the given diagnostic.</param>
 	/// <param name="cancellationToken">A <see cref="CancellationToken" /> used to cancel an ongoing process.</param>
 	/// <returns>The modified <see cref="Document" />.</returns>
-	private static async Task<Document> OrderMembersAsync(CodeFixContext context, bool fixAll, CancellationToken cancellationToken)
+	protected static async Task<Document> OrderMembersAsync(CodeFixContext context, bool fixAll, CancellationToken cancellationToken)
 	{
 		var diagnostic = context.Diagnostics[0];
 		var root = await context.Document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);

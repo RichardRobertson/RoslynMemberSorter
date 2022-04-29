@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `DeclarationComparerOptions`
     - `ToCSharpComparer()` to create a new comparer chain from options.
     - Additional properties to match new comparers.
+- Second code fix provider to fix all members of a container at once.
 
 ### Changed
 

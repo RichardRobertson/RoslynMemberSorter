@@ -13,7 +13,7 @@ using Xunit;
 
 namespace RoslynMemberSorter.Tests;
 
-public class UnitTests : XunitDiagnosticVerifier<MemberSorterAnalyzer, MemberSorterCodeFixProvider>
+public class UnitTests : XunitDiagnosticVerifier<MemberSorterAnalyzer, FixOneCodeFixProvider>
 {
 	private static CSharpTestOptions DefaultCSharpTestOptions
 	{
@@ -62,7 +62,7 @@ public class UnitTests : XunitDiagnosticVerifier<MemberSorterAnalyzer, MemberSor
 		return value.ToString()!.ToSnakeCase();
 	}
 
-	private static string MakePropertyKey<T>(System.Linq.Expressions.Expression<System.Func<DeclarationComparerOptions, T>> expression)
+	private static string MakePropertyKey<T>(System.Linq.Expressions.Expression<Func<DeclarationComparerOptions, T>> expression)
 	{
 		var prefixLookup = new Dictionary<string, string>();
 		foreach (var property in typeof(DeclarationComparerOptions).GetProperties())
