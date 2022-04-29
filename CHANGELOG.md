@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `NameOrder` enum renamed to `IdentifierOrder`
 - Moved options to `dotnet_diagnostic.rms####.` where #### is the diagnostic number relevant to the sorting method.
 - `SortOrders` is now option `dotnet_diagnostic.rms_shared.sort_orders`.
+- Moved README Usage to separate docs folder items.
 
 ### Deprecated
 
